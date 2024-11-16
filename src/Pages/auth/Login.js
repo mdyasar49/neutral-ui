@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import Login from '../../Sections/auth/Login';
-import { Box } from '@mui/material';
+import { Box, Container } from '@mui/material';
+
 // ----------------------------------------------------------------------
 
 export default function LoginPage() {
@@ -10,9 +11,7 @@ export default function LoginPage() {
         <title> Login </title>
       </Helmet>
 
-      <Box sx={{width: '100%'}}>
-        <Login />
-      </Box>
+      <Login />
     </>
   );
 }
