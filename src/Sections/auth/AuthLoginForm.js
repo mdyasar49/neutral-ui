@@ -20,6 +20,45 @@ export default function AuthLoginForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // const handleLogin = () => {
+  //   if (!emailId || !password) {
+  //     alert('Please enter both email and password.', [{ text: 'OK', onPress: () => {} }]);
+  //     setMessage('Please enter both email and password.');
+  //     return;
+  //   }
+  //   setLoading(true);
+  
+  //   axios
+  //     // .post('http://localhost:5000/api/user', 
+  //     //   JSON.stringify({
+  //     //     "httpMethod": "POST",
+  //     //     "body": JSON.stringify({"user_email": emailId, "user_password": password})
+  //     //   })
+  //     // )
+  //     .post('http://localhost:5000/api/user', { user_email: emailId, user_password: password })
+  //     .then((response) => {
+  //       console.log('Response:', response);
+  //       if (response.data.statusCode === 200) {
+  //         const responseData = response.data.body; 
+  //         alert('Login Successful', 'You have successfully logged in.');
+  //         setMessage('Login Successful');
+  //         // const { user_role, user_id, institude_id } = responseData;
+  //         // navigate('Home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role });
+  //         navigate('/home')
+  //       } else {
+  //         alert('Invalid email & password');
+  //         setMessage('Invalid email & password');
+  //       }
+  //     })      
+  //     .catch((error) => {
+  //       console.error('Error:', error.message);
+  //       setMessage(`Error: ${error.message}, Please try again later.`);
+  //       alert(`Error: ${error.message}, Please try again later.`, [{ text: 'OK', onPress: () => {} }]);
+  //     })
+  //     .finally(() => {
+  //       setLoading(false);
+  //     });
+  //   };
   const handleLogin = () => {
     if (!emailId || !password) {
       alert('Please enter both email and password.', [{ text: 'OK', onPress: () => {} }]);
@@ -28,27 +67,24 @@ export default function AuthLoginForm() {
     }
     setLoading(true);
   
+    // Make the POST request to the backend
     axios
-      .post('http://localhost:5000/api/login-user', 
-        JSON.stringify({
-          "httpMethod": "POST",
-          "body": JSON.stringify({"user_email": emailId, "user_password": password})
-        })
-      )
+      .post('http://localhost:5000/api/user', { user_email: emailId, user_password: password })
       .then((response) => {
         console.log('Response:', response);
+  
+        // Assuming the backend responds with a success message and statusCode
         if (response.data.statusCode === 200) {
-          const responseData = response.data.body; 
+          const responseData = response.data.body; // Modify according to your backend response
           alert('Login Successful', 'You have successfully logged in.');
           setMessage('Login Successful');
-          // const { user_role, user_id, institude_id } = responseData;
-          // navigate('Home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role });
-          navigate('/home')
+          // Navigate to home page after successful login
+          navigate('/home');
         } else {
           alert('Invalid email & password');
           setMessage('Invalid email & password');
         }
-      })      
+      })
       .catch((error) => {
         console.error('Error:', error.message);
         setMessage(`Error: ${error.message}, Please try again later.`);
@@ -57,8 +93,7 @@ export default function AuthLoginForm() {
       .finally(() => {
         setLoading(false);
       });
-    };
-
+  };
 
   return (
     <FormProvider>
