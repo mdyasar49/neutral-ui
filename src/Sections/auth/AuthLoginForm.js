@@ -29,7 +29,7 @@ export default function AuthLoginForm() {
     setLoading(true);
   
     axios
-      .post('https://az4b6kztce.execute-api.us-east-1.amazonaws.com/api/login-user', 
+      .post('http://localhost:5000/api/login-user', 
         JSON.stringify({
           "httpMethod": "POST",
           "body": JSON.stringify({"user_email": emailId, "user_password": password})
