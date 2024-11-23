@@ -43,6 +43,7 @@ export default function AuthLoginForm() {
           setMessage('Login Successful');
           // const { user_role, user_id, institude_id } = responseData;
           // navigate('Home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role });
+          navigate('/home')
         } else {
           alert('Invalid email & password');
           setMessage('Invalid email & password');

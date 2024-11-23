@@ -17,6 +17,7 @@ export default function Login() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        color: 'red'
       }}
     >
       <Grid
@@ -26,22 +27,22 @@ export default function Login() {
           maxWidth: 400,
           boxShadow: 3,
           display: 'flex',
-          justifyContent: 'center', // Center the content horizontally
+          justifyContent: 'center', 
         }}
       >
         <Grid
           item
-          xs={12} // Ensure this grid item takes full width of the container
+          xs={12} 
           sx={{
-            padding: 2, // Add padding for inner spacing
+            padding: 2,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
           }}
         >
-          <Stack direction="row" alignItems="center" sx={{ mb: 3, color: 'black' }}>
-            <Box sx={{ flexGrow: 1 }}>
+          <Stack direction="row" alignItems='flex-start' sx={{ mb: 3, color: 'black' }}>
+            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-start' }}>
               <Typography variant="h4" gutterBottom>
                 Sign in
               </Typography>
