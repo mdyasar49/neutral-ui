@@ -70,6 +70,7 @@ export default function AuthLoginForm() {
           autoFocus
           placeholder="Username"
           sx={{ backgroundColor: '#EEFCFC ', borderRadius: '8px' }}
+          fullWidth
         />
 
         <TextField
@@ -87,6 +88,7 @@ export default function AuthLoginForm() {
                 </IconButton>
               </InputAdornment>
             )}
+            fullWidth
         />
       </Stack>
 
@@ -96,7 +98,7 @@ export default function AuthLoginForm() {
         </Link>
       </Stack>
 
-      <Stack direction="column" alignItems="center" justifyContent="space-between" spacing={3}>
+      <Stack direction="column"  spacing={1}>
         <LoadingButton fullWidth onClick={handleLogin} size="large" type="submit" variant="contained" 
           sx={{
             bgcolor: 'text.primary',

@@ -6,7 +6,7 @@ const PieChart = () => {
   useEffect(() => {
     const fetchPieChart = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/pie-chart/user-roles');
+        const response = await fetch('http://localhost:5000/api/pie-chart/user-role-exams');
         if (response.ok) {
           const data = await response.json();
           setChartUrl(data.chart_url);

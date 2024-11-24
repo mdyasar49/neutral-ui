@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, Button, Drawer, Divider, Typography, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
 import PieChart from './dashboard/PieChart';
-import { Box, Button, Drawer, Typography, Divider, List, ListItem, ListItemText } from '@mui/material';
 
 const HomePage = () => {
   const location = useLocation();
@@ -11,12 +11,16 @@ const HomePage = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const toggleDrawer = () => {
-    setDrawerVisible((prev) => !prev);
+    setDrawerVisible(!drawerVisible);
+  };
+
+  const closeDrawer = () => {
+    setDrawerVisible(false);
   };
 
   const handleNavigation = (path, params) => {
     navigate(path, { state: params });
-    setDrawerVisible(false);
+    closeDrawer();
   };
 
   useEffect(() => {
@@ -35,23 +39,25 @@ const HomePage = () => {
 
   return (
     <Box sx={{ padding: '20px' }}>
-      {/* Welcome message */}
       <Box
         sx={{
-          textAlign: 'center',
-          backgroundColor: '#f0f0f0',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
           padding: '20px',
+          backgroundColor: '#f0f0f0',
           borderRadius: '10px',
           margin: '20px auto',
+          textAlign: 'center',
           maxWidth: '500px',
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           Welcome Back {capitalLetter(user_email || 'Guest')}!
         </Typography>
       </Box>
 
-      {/* Drawer toggle button */}
       <Button
         variant="contained"
         color="primary"
@@ -61,36 +67,35 @@ const HomePage = () => {
         {drawerVisible ? 'Close Drawer' : 'Open Drawer'}
       </Button>
 
-      {/* Drawer for menu items */}
-      <Drawer anchor="left" open={drawerVisible} onClose={toggleDrawer}>
+      <Drawer anchor="right" open={drawerVisible} onClose={closeDrawer}>
         <Box
           sx={{
             width: 250,
-            padding: 2,
+            padding: '10px',
+            backgroundColor: '#fff',
           }}
-          role="presentation"
         >
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography variant="h6" component="h2" sx={{ marginBottom: '10px' }}>
             Menu
           </Typography>
-          <Divider />
           <List>
             {menuItems.map((item, index) => (
               <React.Fragment key={index}>
-                <ListItem
-                  button
-                  onClick={() =>
-                    handleNavigation(item.path, {
-                      user_id,
-                      firstname,
-                      id,
-                      user_role,
-                      user_email,
-                      institude_id,
-                    })
-                  }
-                >
-                  <ListItemText primary={item.label} />
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() =>
+                      handleNavigation(item.path, {
+                        user_id,
+                        firstname,
+                        id,
+                        user_role,
+                        user_email,
+                        institude_id,
+                      })
+                    }
+                  >
+                    <ListItemText primary={item.label} />
+                  </ListItemButton>
                 </ListItem>
                 {index < menuItems.length - 1 && <Divider />}
               </React.Fragment>
@@ -98,8 +103,6 @@ const HomePage = () => {
           </List>
         </Box>
       </Drawer>
-
-      {/* PieChart component */}
       <PieChart />
     </Box>
   );

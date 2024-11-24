@@ -1,5 +1,5 @@
 // @mui
-import { Stack, Typography, Box, Grid } from '@mui/material';
+import { Stack, Typography, Box } from '@mui/material';
 import AuthLoginForm from './AuthLoginForm';
 
 // ----------------------------------------------------------------------
@@ -8,8 +8,8 @@ export default function Login() {
   return (
     <Box
       sx={{
+        background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(/components/Images/exam-paper.jpg)', // Ensure correct image path
         backgroundSize: 'cover',
-        backgroundImage: 'url(/components/Images/exam-paper.jpg)',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
         height: '100vh',
@@ -17,41 +17,37 @@ export default function Login() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'red'
+        color: 'white',
+        overflow: 'hidden', // Ensures no overflow from the background
       }}
     >
-      <Grid
-        container
+      {/* Box for form container */}
+      <Box
         sx={{
           width: '100%',
-          maxWidth: 400,
+          maxWidth: 500, // You can change this width if needed
+          padding: 4, // Padding inside the form container
           boxShadow: 3,
+          borderRadius: 2, // Rounded corners
           display: 'flex',
-          justifyContent: 'center', 
+          flexDirection: 'column',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)', // White background with transparency for the form
         }}
       >
-        <Grid
-          item
-          xs={12} 
-          sx={{
-            padding: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Stack direction="row" alignItems='flex-start' sx={{ mb: 3, color: 'black' }}>
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-start' }}>
-              <Typography variant="h4" gutterBottom>
-                Sign in
-              </Typography>
-              <Typography>Enter your details below.</Typography>
-            </Box>
-          </Stack>
-          <AuthLoginForm />
-        </Grid>
-      </Grid>
+        {/* Title and description */}
+        <Stack direction="column" alignItems="center" justifyContent="flex-start" sx={{ mb: 3 }}>
+          <Typography variant="h4" gutterBottom sx={{ color: 'black' }}>
+            Sign in
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'black' }}>
+            Enter your details below.
+          </Typography>
+        </Stack>
+
+        {/* Login form */}
+        <AuthLoginForm />
+      </Box>
     </Box>
   );
 }
