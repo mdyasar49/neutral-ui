@@ -22,43 +22,40 @@ export default function AuthLoginForm() {
 
   const handleLogin = () => {
     if (!emailId || !password) {
-      alert('Please enter both email and password.', [{ text: 'OK', onPress: () => {} }]);
       setMessage('Please enter both email and password.');
       return;
     }
     setLoading(true);
   
     axios
-      .post('http://localhost:5000/api/login-user', 
-        JSON.stringify({
-          "httpMethod": "POST",
-          "body": JSON.stringify({"user_email": emailId, "user_password": password})
-        })
-      )
+      // .post('http://localhost:5000/api/user', 
+      //   JSON.stringify({
+      //     "httpMethod": "POST",
+      //     "body": JSON.stringify({"user_email": emailId, "user_password": password})
+      //   })
+      // )
+      .post('http://localhost:5000/api/user', { user_email: emailId, user_password: password })
       .then((response) => {
         console.log('Response:', response);
-        if (response.data.statusCode === 200) {
-          const responseData = response.data.body; 
-          alert('Login Successful', 'You have successfully logged in.');
+        // if (response.data === 200) {
+        // if (response.data.statusCode === 200) {
+          const responseData = response.data; 
           setMessage('Login Successful');
-          // const { user_role, user_id, institude_id } = responseData;
+          setLoading(false);
+          const { user_role, user_id, institude_id } = responseData;
           // navigate('Home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role });
-          navigate('/home')
-        } else {
-          alert('Invalid email & password');
-          setMessage('Invalid email & password');
-        }
+          navigate('/home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role })
+        // } else {
+        //   setMessage('Invalid email & password');
+        //   setLoading(false);
+        // }
       })      
       .catch((error) => {
         console.error('Error:', error.message);
-        setMessage(`Error: ${error.message}, Please try again later.`);
-        alert(`Error: ${error.message}, Please try again later.`, [{ text: 'OK', onPress: () => {} }]);
-      })
-      .finally(() => {
+        setMessage(`Error: ${error.message}, Please try again later.`);        
         setLoading(false);
       });
     };
-
 
   return (
     <FormProvider>
@@ -73,6 +70,7 @@ export default function AuthLoginForm() {
           autoFocus
           placeholder="Username"
           sx={{ backgroundColor: '#EEFCFC ', borderRadius: '8px' }}
+          fullWidth
         />
 
         <TextField
@@ -90,6 +88,7 @@ export default function AuthLoginForm() {
                 </IconButton>
               </InputAdornment>
             )}
+            fullWidth
         />
       </Stack>
 
@@ -99,7 +98,7 @@ export default function AuthLoginForm() {
         </Link>
       </Stack>
 
-      <Stack direction="column" alignItems="center" justifyContent="space-between" spacing={3}>
+      <Stack direction="column"  spacing={1}>
         <LoadingButton fullWidth onClick={handleLogin} size="large" type="submit" variant="contained" 
           sx={{
             bgcolor: 'text.primary',
