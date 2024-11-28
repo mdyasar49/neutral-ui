@@ -4,4 +4,4 @@ function RegisterPage() {
     return(
         
     );
-}
+} 
