@@ -13,7 +13,7 @@ export default function Register() {
     <>
       <Helmet>
         <title>Register</title>
-      </Helmet>
+      </Helmet> 
 
       <Stack spacing={2} sx={{ mb: 5, position: 'relative' }}>
         <Typography variant="h4">Get started absolutely free.</Typography>

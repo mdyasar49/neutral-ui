@@ -19,7 +19,7 @@ const HomePage = () => {
   };
 
   const handleNavigation = (path, params) => {
-    navigate(path, { state: params });
+    navigate(path, { state: params }); 
     closeDrawer();
   };
 

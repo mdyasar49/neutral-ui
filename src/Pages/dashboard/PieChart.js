@@ -48,6 +48,6 @@ const PieChart = () => {
       </CardContent>
     </Card>
   );
-};
+}; 
 
 export default PieChart;
