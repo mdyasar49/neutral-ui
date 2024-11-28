@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
 
 const PieChart = () => {
   const [chartUrl, setChartUrl] = useState('');
@@ -22,18 +23,30 @@ const PieChart = () => {
   }, []);
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '20px' }}>
-      <h2>Completed Exams by User Role</h2>
-      {chartUrl ? (
-        <img
-          src={chartUrl}
-          alt="Pie Chart"
-          style={{ width: '80%', maxWidth: '400px', borderRadius: '10px' }}
-        />
-      ) : (
-        <p>Loading chart...</p>
-      )}
-    </div>
+    <Card sx={{ maxWidth: 500, margin: '20px auto', textAlign: 'center', boxShadow: 3 }}>
+      <CardContent>
+        <Typography variant="h6" component="div" gutterBottom>
+          Completed Exams by User Role
+        </Typography>
+        {chartUrl ? (
+          <Box
+            component="img"
+            src={chartUrl}
+            alt="Pie Chart"
+            sx={{
+              width: '100%',
+              maxWidth: '400px',
+              borderRadius: '10px',
+              margin: '0 auto',
+            }}
+          />
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '150px' }}>
+            <CircularProgress />
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

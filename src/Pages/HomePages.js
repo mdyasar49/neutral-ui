@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Box, Button, Drawer, Divider, Typography, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
 import PieChart from './dashboard/PieChart';
 
 const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user_id, firstname, id, user_role, user_email, institude_id } = location.state || {};
+  const { user_id, firstname, id, user_role, user_email, institude_id } = useParams();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
 

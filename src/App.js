@@ -1,19 +1,24 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import LoginPage from "./Pages/auth/Login";
-import Register from "./Sections/auth/Register";
-import HomePage from "./Pages/HomePages";
+
+// Lazy loading components
+const LoginPage = lazy(() => import("./Pages/auth/Login"));
+const Register = lazy(() => import("./Sections/auth/Register"));
+const HomePage = lazy(() => import("./Pages/HomePages"));
 
 function App() {
   return (
     <HelmetProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<LoginPage />}/>
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/register" element={<Register />} />
-        </Routes>
+        {/* Suspense provides a fallback while the component is being loaded */}
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </Suspense>
       </Router>
     </HelmetProvider>
   );
