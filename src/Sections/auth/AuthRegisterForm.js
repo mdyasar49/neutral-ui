@@ -18,7 +18,7 @@ export default function AuthRegisterForm() {
         </Stack>
 
         <TextField name="email" label="Email address"  sx={{ backgroundColor: '#EEFCFC ',borderRadius: '8px' }}/>
-
+ 
         <TextField
           name="password"
           label="Password"
