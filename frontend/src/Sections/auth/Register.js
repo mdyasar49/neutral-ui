@@ -1,4 +1,4 @@
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 // @mui
 import { Stack, Typography, Link } from '@mui/material';
 import AuthRegisterForm from './AuthRegisterForm';

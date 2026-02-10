@@ -1,129 +1,144 @@
-import { useRef, useState } from 'react';
-import { FormProvider } from 'react-hook-form';
-// @mui
-import { Link, Stack, IconButton, InputAdornment, TextField, Icon } from '@mui/material';
-import { LoadingButton } from '@mui/lab';
-import axios from 'axios';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link, Stack, IconButton, InputAdornment, TextField, Alert, Typography } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import { Icon } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import axios from 'axios';
 
 // ----------------------------------------------------------------------
 
 export default function AuthLoginForm() {
+  const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
-  const emailInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
-
-  const [emailId, setEmailId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = () => {
-    if (!emailId || !password) {
-      setMessage('Please enter both email and password.');
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
+    
+    if (!email || !password) {
+      setErrorMessage('Please enter both email and password.');
       return;
     }
+
     setLoading(true);
-  
-    axios
-      // .post('http://localhost:5000/api/user', 
-      //   JSON.stringify({
-      //     "httpMethod": "POST",
-      //     "body": JSON.stringify({"user_email": emailId, "user_password": password})
-      //   })
-      // )
-      .post('http://localhost:5000/api/user', { user_email: emailId, user_password: password })
-      .then((response) => {
-        console.log('Response:', response);
-        // if (response.data === 200) {
-        // if (response.data.statusCode === 200) {
-          const responseData = response.data; 
-          setMessage('Login Successful');
-          setLoading(false);
-          const { user_role, user_id, institude_id } = responseData;
-          // navigate('Home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role });
-          navigate('/home', { user_email: emailId, user_id: user_id, institude_id: institude_id, user_role: user_role })
-        // } else {
-        //   setMessage('Invalid email & password');
-        //   setLoading(false);
-        // }
-      })      
-      .catch((error) => {
-        console.error('Error:', error.message);
-        setMessage(`Error: ${error.message}, Please try again later.`);        
-        setLoading(false);
+    setErrorMessage('');
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/user/login', { 
+        user_email: email, 
+        user_password: password 
       });
-    };
+
+      console.log('Login Successful:', response.data);
+      const { user_role, user_id, token, role, id, firstName, lastName, email: userEmail } = response.data;
+      
+      // Save token and user info
+      if (token) {
+        localStorage.setItem('authToken', token);
+        const userData = {
+            id: user_id || id,
+            firstName,
+            lastName,
+            email: userEmail,
+            role: user_role || role
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      // Navigate to home
+      navigate('/home');
+      
+    } catch (error) {
+      console.error('Login Error:', error);
+      const message = error.response?.data?.error || error.message || 'Login failed. Please try again.';
+      setErrorMessage(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <FormProvider>
+    <form onSubmit={handleLogin}>
       <Stack spacing={3}>
+        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-      <TextField
+        <TextField
           name="email"
-          onChange={(e) => setEmailId(e.target.value)}
-          inputRef={emailInputRef}
-          variant="outlined"
-          value={emailId}
-          autoFocus
-          placeholder="Username"
-          sx={{ backgroundColor: '#EEFCFC ', borderRadius: '8px' }}
+          label="Email address"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           fullWidth
         />
 
         <TextField
           name="password"
-          placeholder="Password"
-          inputRef={passwordInputRef}
+          label="Password"
+          placeholder="Enter your password"
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          sx={{ backgroundColor: '#EEFCFC ', borderRadius: '8px' }}
-          endAdornment={ (
+          fullWidth
+          InputProps={{
+            endAdornment: (
               <InputAdornment position="end">
                 <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                  <Icon>{showPassword ? 'visibility' : 'visibility_off'}</Icon>
+                  {showPassword ? <Visibility /> : <VisibilityOff />}
                 </IconButton>
               </InputAdornment>
-            )}
-            fullWidth
+            ),
+          }}
         />
-      </Stack>
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ color: 'black' }} spacing={2}>
-        <Link variant="subtitle2" sx={{ color: 'black' }} >
-          Forgot password?
-        </Link>
-      </Stack>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }}>
+          <Link variant="subtitle2" underline="hover" sx={{ cursor: 'pointer' }}>
+            Forgot password?
+          </Link>
+        </Stack>
 
-      <Stack direction="column"  spacing={1}>
-        <LoadingButton fullWidth onClick={handleLogin} size="large" type="submit" variant="contained" 
+        <LoadingButton
+          fullWidth
+          size="large"
+          type="submit"
+          variant="contained"
+          loading={loading}
           sx={{
-            bgcolor: 'text.primary',
-            color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
+            py: 1.5,
+            bgcolor: 'primary.main',
+            color: 'white',
             '&:hover': {
-              bgcolor: 'text.primary',
-              color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
+              bgcolor: 'primary.dark',
             },
-            backgroundColor: 'green'
-          }}>
+            mb: 2
+          }}
+        >
           Login
         </LoadingButton>
-        <LoadingButton fullWidth onClick={()=>navigate('/register')} size="large" type="submit" variant="contained" 
+
+        <LoadingButton
+          fullWidth
+          size="large"
+          variant="outlined"
+          onClick={() => navigate('/register')}
           sx={{
-            bgcolor: 'text.primary',
-            color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
-            '&:hover': {
-              bgcolor: 'text.primary',
-              color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
-            },
-            backgroundColor: 'green'
-          }} >
-          Register
+             py: 1.5,
+             mt: 1,
+             color: 'primary.main',
+             borderColor: 'primary.main',
+             '&:hover': {
+               borderColor: 'primary.dark',
+               bgcolor: 'rgba(32, 101, 209, 0.04)'
+             }
+          }}
+        >
+          Register Account
         </LoadingButton>
       </Stack>
-    </FormProvider>
+    </form>
   );
 }
