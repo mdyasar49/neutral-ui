@@ -3,6 +3,7 @@ export const API_BASE_URL = 'http://localhost:5000/api';
 export const ROUTES = {
   LOGIN: '/',
   REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
   HOME: '/home',
   USER_LIST: '/user-list',
   EXAM_LIST: '/exam-list',

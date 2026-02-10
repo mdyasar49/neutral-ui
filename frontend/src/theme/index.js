@@ -49,8 +49,9 @@ const theme = createTheme({
     secondary: SECONDARY,
     success: SUCCESS,
     background: {
-      default: isDarkMode ? '#161C24' : '#F9FAFB', // Dark vs Light Bg
-      paper: isDarkMode ? '#212B36' : '#FFFFFF', // Dark vs Light Paper
+      default: isDarkMode ? '#161C24' : '#F9FAFB',
+      paper: isDarkMode ? '#212B36' : '#FFFFFF',
+      neutral: isDarkMode ? alpha('#919EAB', 0.12) : '#F4F6F8',
     },
     text: {
       primary: isDarkMode ? '#FFFFFF' : '#212B36',

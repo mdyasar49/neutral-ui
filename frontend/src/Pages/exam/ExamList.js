@@ -179,7 +179,7 @@ export default function ExamList() {
              ))
          ) : exams.length === 0 ? (
              <Grid item xs={12}>
-                 <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'background.paper', borderRadius: 2, border: '1px dashed #ddd' }}>
+                 <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'background.paper', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
                      <Typography variant="h6" color="text.secondary">No exams found</Typography>
                      <Button sx={{ mt: 2 }} onClick={() => navigate('/exam/create')}>Create your first exam</Button>
                  </Box>

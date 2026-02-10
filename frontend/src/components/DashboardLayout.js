@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -19,15 +19,14 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
-  Tooltip
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
   Assignment as ExamIcon,
   Logout as LogoutIcon,
-  ChevronLeft as ChevronLeftIcon,
   Settings as SettingsIcon,
   Person as PersonIcon,
   Email as MailIcon,
@@ -64,40 +63,7 @@ export default function DashboardLayout() {
   // Load User Data
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Token Expiration Check
-  useEffect(() => {
-    const checkToken = () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const exp = payload.exp * 1000;
-          if (Date.now() > exp) {
-            handleLogout(true); // Call logout with expired flag
-          }
-        } catch (e) {
-          console.error("Token parse error", e);
-        }
-      }
-    };
-
-    const interval = setInterval(checkToken, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const toggleDrawer = () => {
-    setOpen(!open);
-  };
-
-  const handleProfileMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = async (isExpired = false) => {
+  const handleLogout = useCallback(async (isExpired = false) => {
     // Notify Backend for Email
     try {
       if (user.email) {
@@ -121,6 +87,39 @@ export default function DashboardLayout() {
     }
     
     navigate('/');
+  }, [user.email, user.firstName, navigate, showNotification]);
+
+  // Token Expiration Check
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const exp = payload.exp * 1000;
+          if (Date.now() > exp) {
+            handleLogout(true); // Call logout with expired flag
+          }
+        } catch (e) {
+          console.error("Token parse error", e);
+        }
+      }
+    };
+
+    const interval = setInterval(checkToken, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [handleLogout]);
+
+  const toggleDrawer = () => {
+    setOpen(!open);
+  };
+
+  const handleProfileMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
   };
 
   return (
@@ -182,7 +181,7 @@ export default function DashboardLayout() {
           [`& .MuiDrawer-paper`]: { 
              width: drawerWidth, 
              boxSizing: 'border-box',
-             borderRight: '1px solid rgba(0,0,0,0.12)',
+             borderRight: `1px solid ${theme.palette.divider}`,
              bgcolor: 'background.paper'
           },
         }}
@@ -190,8 +189,17 @@ export default function DashboardLayout() {
         <Toolbar /> 
         <Box sx={{ overflow: 'auto', p: 2 }}>
            
-           <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'primary.light', borderRadius: 2, color: 'primary.contrastText' }}>
-              <Avatar variant="rounded" sx={{ bgcolor: 'white', color: 'primary.main' }}>
+           <Box sx={{ 
+             mb: 4, 
+             display: 'flex', 
+             alignItems: 'center', 
+             gap: 2, 
+             p: 2, 
+             bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.16) : 'primary.light', 
+             borderRadius: 2, 
+             color: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.contrastText' 
+           }}>
+              <Avatar variant="rounded" sx={{ bgcolor: theme.palette.mode === 'dark' ? 'primary.main' : 'white', color: theme.palette.mode === 'dark' ? 'white' : 'primary.main' }}>
                 {user.firstName?.[0] || 'U'}
               </Avatar>
               <Box>

@@ -1,94 +1,97 @@
-# 🎓 Neutral UI - Academic Management Platform
+# 🎓 Neutral UI - Full-Stack Academic Platform
 
-Neutral UI is a modern, full-stack academic management system designed to streamline school operations, exam scheduling, and student-teacher interactions. Built with a premium Material UI design and a robust Python backend.
+[![License: Private](https://img.shields.io/badge/License-Private-red.svg)](README.md)
+[![Powered by AI](https://img.shields.io/badge/Powered%20by-OpenAI-blueviolet.svg)](https://openai.com)
 
-## 🚀 Key Features
-
-### 📅 Advanced Academic Calendar
-
-- **World Calendar**: Integrated public holidays API to track global festivals.
-- **Smart Scheduling**: Click on any date to instantly schedule exams, classes, or reminders.
-- **Schedule Overview**: A "Complete Schedule" modal to view the entire year's activities at a glance.
-
-### 👥 Intelligent User Management
-
-- **Role-Based Access**: Specialized views for Administrators, Teachers (Staff), and Students.
-- **Dynamic Teacher Assignment**: Admins can link students to specific teachers; Teachers auto-assign students to themselves.
-- **Secure Authentication**: JWT-based login, bcrypt password hashing, and auto-logout for security.
-
-### 🏫 Classes & Batches
-
-- **Full CRUD Support**: Create, manage, and edit academic departments and classes.
-- **Student Rosters**: Track enrollment numbers and assigned class teachers dynamically.
-
-### 📝 Exam & Result Engine
-
-- **AI-Powered Questions**: Integrated AI service to generate exam questions based on topics and difficulty.
-- **Performance Analytics**: Visual progress charts and circular performance metrics.
-- **Result Management**: Downloadable PDF results and detailed performance notes.
-
-### 📚 Digital Library
-
-- **Resource Hub**: Centralized location for study materials and department resources.
-- **Instant Upload/Download**: Quick-action file management with category filtering.
+**Neutral UI** is a state-of-the-art academic management ecosystem. It bridges the gap between administrative efficiency and student engagement using a sleek Material UI design and a robust Python-powered intelligence engine.
 
 ---
 
-## 🛠️ Technology Stack
+## 🌟 Vision & Design Philosophy
 
-**Frontend:**
-
-- **React.js** (Functional Components, Hooks)
-- **Material UI (MUI)** (Premium component design)
-- **Axios** (API communication)
-- **Formik & Yup** (Robust form management)
-
-**Backend:**
-
-- **Python Flask** (RESTful API)
-- **MySQL** (Relational Database)
-- **JWT** (Secure Authentication tokens)
-- **Bcrypt** (Military-grade password security)
+The name **"Neutral UI"** reflects our commitment to a minimalist, distraction-free environment. We utilize curated neutral palettes (HSL tailored), smooth glassmorphism effects, and premium micro-animations to ensure that "Administrative Work" feels like a "Premium Experience."
 
 ---
 
-## ⚙️ Development Setup
+## 🚀 Core Features
 
-### 📦 Backend Setup
+### 🧠 AI-Enhanced Examination
 
-1. Navigate to the `/backend` folder.
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Configure your database in `db_config.ini`.
-4. Run the server:
-   ```bash
-   python app.py
-   ```
+- **Auto-Question Generation**: Powered by GPT, educators can generate valid questions from a single topic input.
+- **Hybrid Forms**: Support for MCQs and Written answers with automated grading logic.
+- **Proctor-Ready**: Time-bound sessions with real-time performance tracking.
 
-### 💻 Frontend Setup
+### 👥 Comprehensive Role Management
 
-1. Navigate to the `/frontend` folder.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+- **Admin Dashboard**: Central command for user creation, class scheduling, and institutional metrics.
+- **Teacher Hub**: Specialized views for student assignment, exam creation, and internal messaging.
+- **Student Portal**: Track library resources, upcoming exams, and detailed result analytics.
+
+### 📊 Performance Analytics
+
+- **Progress Tracking**: Visual linear and circular metrics for exam scores.
+- **Result Portal**: Automated result calculation with downloadable PDF reports.
+
+### 📅 Smart Organization
+
+- **Integrated Calendar**: Manage holidays, attendance, and schedules in one unified view.
+- **Internal Messaging**: Socket.IO enabled real-time mail system for institutional communication.
 
 ---
 
-## 🧹 Project Cleanliness
+## 🛠️ Infrastructure Stack
 
-This repository is maintained with a focus on clean, modular code. Recent maintenance included:
+| Layer            | Technologies                                                          |
+| :--------------- | :-------------------------------------------------------------------- |
+| **Frontend**     | React 18, Material UI (MUI), Axios, React Hook Form, Socket.IO Client |
+| **Backend**      | Python Flask, Flask-Cors, Flask-SocketIO, JWT                         |
+| **Intelligence** | OpenAI API (GPT-3.5/4 Integration)                                    |
+| **Database**     | MySQL (with dedicated `database.sql` schema)                          |
+| **Identity**     | Bcrypt Hashing, JWT Authentication                                    |
 
-- Removal of redundant boilerplate and template files.
-- Centralized `services/` layer for all API interactions.
-- Reusable `ConfirmDialog` component to replace browser-native alerts.
+---
 
-## 📜 License
+## 🚦 Quick Start Guide
 
-This project is private property of **mdyasar49**. All rights reserved.
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/mdyasar49/Neutral-UI.git
+cd Neutral-UI
+```
+
+### 2️⃣ Initialize Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+# Configure db_config.ini with your MySQL & OpenAI credentials
+python app.py
+```
+
+### 3️⃣ Initialize Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+---
+
+## 📁 Repository Structure
+
+```text
+Neutral-UI/
+├── 📂 frontend/    # React application
+├── 📂 backend/     # Flask API & Database scripts
+├── 📄 .gitignore
+└── 📄 README.md    # Main documentation
+```
+
+---
+
+## 📜 Legal
+
+This project is proprietary and confidential.  
+© 2026 **mdyasar49**. All rights reserved.

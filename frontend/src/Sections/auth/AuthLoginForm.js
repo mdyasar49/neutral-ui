@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link, Stack, IconButton, InputAdornment, TextField, Alert, Typography } from '@mui/material';
+import { Link, Stack, IconButton, InputAdornment, TextField, Alert } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { Icon } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
+import { useNotification } from '../../context/NotificationContext';
 
 // ----------------------------------------------------------------------
 
 export default function AuthLoginForm() {
   const navigate = useNavigate();
+  const showNotification = useNotification();
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -49,6 +50,9 @@ export default function AuthLoginForm() {
         };
         localStorage.setItem('user', JSON.stringify(userData));
       }
+      
+      // Success Toast
+      showNotification('Login successful! Welcome back.', 'success');
       
       // Navigate to home
       navigate('/home');
@@ -96,7 +100,12 @@ export default function AuthLoginForm() {
         />
 
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }}>
-          <Link variant="subtitle2" underline="hover" sx={{ cursor: 'pointer' }}>
+          <Link 
+            variant="subtitle2" 
+            underline="hover" 
+            sx={{ cursor: 'pointer' }}
+            onClick={() => navigate('/forgot-password')}
+          >
             Forgot password?
           </Link>
         </Stack>

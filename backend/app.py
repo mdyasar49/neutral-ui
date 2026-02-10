@@ -10,6 +10,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from openai import OpenAI
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -105,6 +107,30 @@ def login_user():
                 'token': token
             }), 200
         return jsonify({"error": "Invalid credentials"}), 401
+    return jsonify({"error": "Database connection failed"}), 500
+
+@app.route('/api/user/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            subject = "Reset Your Password - Neutral UI"
+            body = f"Hello {user['firstName']},\n\nYou requested a password reset. Click the link below to reset your password:\n\nhttp://localhost:3000/reset-password?token=mock_token_123\n\nIf you did not request this, please ignore this email."
+            send_smtp_email(email, subject, body)
+            return jsonify({"message": "Password reset email sent"}), 200
+        
+        return jsonify({"error": "User with this email does not exist"}), 404
     return jsonify({"error": "Database connection failed"}), 500
 
 @app.route('/api/user/logout', methods=['POST'])
@@ -810,6 +836,75 @@ def download_resource(id):
         "message": "Library resource download started",
         "file_url": f"/api/library/file_{id}.pdf"
     }), 200
+
+# ==========================================
+# AI ROUTES
+# ==========================================
+
+@app.route('/api/ai/generate-questions', methods=['POST'])
+def generate_ai_questions():
+    data = request.json
+    topic = data.get('topic')
+    count = data.get('count', 5)
+    difficulty = data.get('difficulty', 'medium')
+    q_type = data.get('type', 'mcq')
+
+    if not topic:
+        return jsonify({"error": "Topic is required"}), 400
+
+    config = ConfigParser()
+    config.read('db_config.ini')
+    api_key = config.get('AI', 'openai.api_key', fallback=os.getenv('OPENAI_API_KEY'))
+
+    # If no API key, use mock data to demonstrate functionality
+    if not api_key or api_key == 'your_openai_api_key_here':
+        print("AI: No API Key found, using mock data for demo.")
+        mock_questions = [
+            {
+                "question_text": f"What is the primary purpose of {topic}?",
+                "question_type": "mcq",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "correct_answer": "Option A",
+                "marks": 5
+            } for i in range(count)
+        ]
+        return jsonify({"questions": mock_questions})
+
+    try:
+        client = OpenAI(api_key=api_key)
+        
+        prompt = f"""
+        Generate {count} {difficulty} difficulty {q_type} questions about "{topic}".
+        Return the result as a JSON array of objects with the following structure:
+        {{
+            "question_text": "string",
+            "question_type": "mcq",
+            "options": ["string", "string", "string", "string"],
+            "correct_answer": "string (must match one of the options exactly)",
+            "marks": number
+        }}
+        Only return the JSON array. No other text.
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful education assistant that generates exam questions in JSON format."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+        
+        content = response.choices[0].message.content
+        ai_data = json.loads(content)
+        
+        # Adjusting if AI returns a wrapper object or direct array
+        questions = ai_data.get('questions', ai_data if isinstance(ai_data, list) else [])
+        
+        return jsonify({"questions": questions})
+    except Exception as e:
+        print(f"AI Generation Error: {e}")
+        return jsonify({"error": "Failed to generate questions using AI. Please try again later or check your API key."}), 500
 
 # ==========================================
 # CALENDAR ROUTES

@@ -12,13 +12,10 @@ import {
   Typography,
   Checkbox,
   FormControlLabel,
-  Link,
-  Divider,
-  Button
+  Link
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { Icon } from '@mui/material';
-import { Visibility, VisibilityOff, Google, LinkedIn, Twitter } from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
 
 import { useNotification } from '../../context/NotificationContext';
@@ -86,22 +83,6 @@ export default function AuthRegisterForm() {
     <form onSubmit={handleSubmit(onSubmit)}>
       <Stack spacing={3}>
         {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-
-       {/* Social Login (Optional enhancement) */}
-        <Stack direction="row" spacing={2}>
-          <Button fullWidth size="large" color="inherit" variant="outlined" startIcon={<Google />}>
-            Google
-          </Button>
-          <Button fullWidth size="large" color="inherit" variant="outlined" startIcon={<Twitter />}>
-            Twitter
-          </Button>
-        </Stack>
-
-        <Divider sx={{ my: 3 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            OR
-          </Typography>
-        </Divider>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField

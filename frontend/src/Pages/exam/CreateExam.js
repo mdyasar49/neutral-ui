@@ -4,18 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
-  Paper,
   Typography,
   Grid,
   TextField,
   Button,
   IconButton,
   Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Stack,
   Divider,
 } from '@mui/material';
@@ -24,6 +18,8 @@ import { Add as AddIcon, Delete as DeleteIcon, ArrowBack as BackIcon } from '@mu
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { useNotification } from '../../context/NotificationContext';
+import aiService from '../../services/aiService';
+import { AutoAwesome as AIIcon } from '@mui/icons-material';
 
 // ----------------------------------------------------------------------
 
@@ -31,9 +27,11 @@ export default function CreateExam() {
   const navigate = useNavigate();
   const showNotification = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
 
   // Form Setup
-  const { control, register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { control, register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       title: '',
       description: '',
@@ -45,7 +43,7 @@ export default function CreateExam() {
     }
   });
 
-  const { fields,append, remove } = useFieldArray({
+  const { fields,append, remove, replace } = useFieldArray({
     control,
     name: "questions"
   });
@@ -71,6 +69,36 @@ export default function CreateExam() {
       showNotification('Failed to create exam', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiTopic) {
+      showNotification('Please enter a topic for AI generation', 'info');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await aiService.generateQuestions({ topic: aiTopic, count: 5 });
+      if (response.questions) {
+        // Map AI response to form structure
+        const aiQuestions = response.questions.map(q => ({
+          question_text: q.question_text,
+          question_type: q.question_type || 'mcq',
+          marks: q.marks || 5,
+          options: q.options || ['', '', '', ''],
+          correct_answer: q.correct_answer || ''
+        }));
+        
+        replace(aiQuestions);
+        showNotification(`AI generated ${aiQuestions.length} questions successfully!`, 'success');
+      }
+    } catch (error) {
+      console.error(error);
+      showNotification('AI Generation failed. Check backend/logs.', 'error');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -141,6 +169,41 @@ export default function CreateExam() {
                   label="Total Marks"
                   {...register('totalMarks')}
                 />
+
+                <Divider sx={{ my: 1 }}>
+                  <Typography variant="caption" color="text.secondary">AI ASSISTANT</Typography>
+                </Divider>
+
+                <Box sx={{ 
+                  p: 2, 
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(145, 158, 171, 0.12)' : 'primary.lighter', 
+                  borderRadius: 2, 
+                  border: '1px dashed', 
+                  borderColor: 'primary.main',
+                  mb: 3
+                }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                     <AIIcon fontSize="small" color="primary" /> AI Question Generator
+                  </Typography>
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    placeholder="Enter topic (e.g. React Hooks)" 
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    sx={{ mb: 1 }}
+                  />
+                  <LoadingButton
+                    fullWidth
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<AIIcon />}
+                    loading={isGenerating}
+                    onClick={handleAiGenerate}
+                  >
+                    Generate Questions
+                  </LoadingButton>
+                </Box>
                 
                 <LoadingButton 
                   type="submit" 

@@ -72,7 +72,7 @@ export default function ExamDetails() {
                   {exam.description}
                </Typography>
 
-               <Stack direction="row" spacing={4} sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 2 }}>
+               <Stack direction="row" spacing={4} sx={{ mt: 4, p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
                   <Box>
                      <Typography variant="caption" color="text.secondary">For Duration</Typography>
                      <Typography variant="h6">{exam.duration_minutes} Minutes</Typography>

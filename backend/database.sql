@@ -162,3 +162,20 @@ INSERT INTO library_resources (title, resource_type, file_size, category, upload
 INSERT INTO calendar_events (title, event_date, event_type, color, created_by) VALUES 
 ('Maths Final Exam', '2023-11-05', 'exam', 'error', 1),
 ('Project Submission', '2023-11-18', 'submission', 'warning', 1);
+
+-- ==========================================
+-- 8. MESSAGES TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,
+    receiver_id INT NULL,
+    receiver_email VARCHAR(255) NULL,
+    subject VARCHAR(255),
+    body TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    status ENUM('sent', 'failed') DEFAULT 'sent',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
