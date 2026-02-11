@@ -4,6 +4,8 @@ import mysql.connector
 from configparser import ConfigParser
 import os
 # import bcrypt
+import string
+import random
 import jwt
 import datetime
 import smtplib
@@ -253,8 +255,14 @@ def handle_users():
         role = data.get('role', 'student')
         teacher_id = data.get('teacher_id')
         
-        if not email or not password:
-            return jsonify({"error": "Email and password required"}), 400
+        # Auto-generate password if not provided
+        is_auto_generated = False
+        if not password:
+            password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            is_auto_generated = True
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
             
         # hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
@@ -263,8 +271,27 @@ def handle_users():
             query = "INSERT INTO users (firstName, lastName, email, password, role, teacher_id, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s)"
             cursor.execute(query, (firstName, lastName, email, password, role, teacher_id, creator_name))
             conn.commit()
+            
+            # Send Welcome Email with Setup Link
+            if is_auto_generated:
+                subject = "Welcome to Neutral Academy - Account Setup"
+                # Link includes email and temp password for auto-login/setup context
+                setup_link = f"http://localhost:3000/setup-password?email={email}&temp={password}"
+                body = f"""Hello {firstName},
+
+Your account has been created by an administrator.
+
+Temporary Password: {password}
+Role: {role}
+
+Please click the link below to set your permanent password and access your dashboard:
+{setup_link}
+
+If you have any issues, please contact your administrator."""
+                send_smtp_email(email, subject, body)
+
             conn.close()
-            return jsonify({"message": "User created successfully"}), 201
+            return jsonify({"message": "User created successfully", "temp_password": password if is_auto_generated else None}), 201
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -317,6 +344,33 @@ def handle_user(id):
         return jsonify({"message": "User deleted"})
 
     return jsonify({"error": "Method not allowed"}), 405
+
+@app.route('/api/user/setup-password', methods=['POST'])
+def setup_password():
+    data = request.json
+    email = data.get('email')
+    temp_password = data.get('temp_password')
+    new_password = data.get('new_password')
+
+    if not email or not temp_password or not new_password:
+        return jsonify({"error": "All fields are required"}), 400
+
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        # Verify temp password matches
+        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, temp_password))
+        user = cursor.fetchone()
+        
+        if user:
+            cursor.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, user['id']))
+            conn.commit()
+            conn.close()
+            return jsonify({"message": "Password updated successfully"}), 200
+        
+        conn.close()
+        return jsonify({"error": "Invalid temporary password or email"}), 401
+    return jsonify({"error": "Database Error"}), 500
 
 # ==========================================
 # EXAM ROUTES
@@ -506,9 +560,12 @@ def get_messages(user_id):
     if conn:
         cursor = conn.cursor(dictionary=True)
         
+        # Get User Email for Inbox check
+        cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        user_row = cursor.fetchone()
+        user_email = user_row['email'] if user_row else None
+
         if msg_type == 'sent':
-            # Fetch messages sent BY this user
-            # We need to get Receiver Name (if internal) or Email (if external)
             query = """
             SELECT 
                 m.id, m.sender_id, m.receiver_id, m.receiver_email, m.subject, m.body, m.is_read, m.status,
@@ -519,21 +576,31 @@ def get_messages(user_id):
             WHERE m.sender_id = %s
             ORDER BY m.created_on DESC
             """
+            cursor.execute(query, (user_id,))
         else:
-            # Fetch messages received BY this user (Inbox)
             query = """
             SELECT 
                 m.id, m.sender_id, m.receiver_id, m.subject, m.body, m.is_read, m.status,
                 DATE_FORMAT(m.created_on, '%Y-%m-%d %H:%i:%S') as created_at,
                 u.firstName, u.lastName, u.email as senderEmail
             FROM messages m
-            JOIN users u ON m.sender_id = u.id
-            WHERE m.receiver_id = %s
+            LEFT JOIN users u ON m.sender_id = u.id
+            WHERE m.receiver_id = %s OR (m.receiver_email = %s AND m.receiver_email IS NOT NULL)
             ORDER BY m.created_on DESC
             """
+            cursor.execute(query, (user_id, user_email))
             
-        cursor.execute(query, (user_id,))
         messages = cursor.fetchall()
+        
+        # Auto-create welcome message only if inbox is completely empty for a new user
+        if not messages and msg_type == 'inbox':
+            try:
+                cursor.execute("INSERT INTO messages (sender_id, receiver_id, subject, body, created_by) VALUES (%s, %s, 'Welcome!', 'Enjoy your new mailbox!', 'System')", (user_id, user_id))
+                conn.commit()
+                cursor.execute(query, (user_id, user_email))
+                messages = cursor.fetchall()
+            except: pass
+
         conn.close()
         return jsonify(messages)
     return jsonify({"error": "Database connection failed"}), 500
@@ -1022,13 +1089,11 @@ def create_messages_table():
                 status VARCHAR(20) DEFAULT 'sent', -- 'sent', 'failed', 'queued'
                 is_read BOOLEAN DEFAULT FALSE,
                 created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_by INT,
+                created_by VARCHAR(255),
                 modified_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                modified_by INT,
+                modified_by VARCHAR(255),
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL,
-                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-                FOREIGN KEY (modified_by) REFERENCES users(id) ON DELETE SET NULL
+                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL
             )
             """
             cursor.execute(query)
@@ -1049,9 +1114,16 @@ def create_messages_table():
                 cursor.execute("ALTER TABLE messages ADD COLUMN receiver_email VARCHAR(255)")
             
             try:
-                 cursor.execute("ALTER TABLE messages MODIFY receiver_id INT NULL")
+                 # Drop FKs if they exist (ignoring errors if they don't)
+                 try: cursor.execute("ALTER TABLE messages DROP FOREIGN KEY messages_ibfk_3")
+                 except: pass
+                 try: cursor.execute("ALTER TABLE messages DROP FOREIGN KEY messages_ibfk_4")
+                 except: pass
+                 
+                 cursor.execute("ALTER TABLE messages MODIFY created_by VARCHAR(255)")
+                 cursor.execute("ALTER TABLE messages MODIFY modified_by VARCHAR(255)")
             except Exception as e:
-                print(f"Schema Alter Warning: {e}")
+                print(f"Schema Alter Column Warning: {e}")
 
             conn.commit()
             print("Messages table schema updated.")

@@ -5,7 +5,7 @@ import { Box, Container, Typography, Stack } from '@mui/material';
 
 // ----------------------------------------------------------------------
 
-const Page = ({ children, title, subtitle, sx, ...other }) => (
+const Page = ({ children, title, subtitle, action, sx, ...other }) => (
   <Box sx={{ py: 3, ...sx }} {...other}>
     <Helmet>
       <title>{`${title} | Neutral UI`}</title>
@@ -24,6 +24,7 @@ const Page = ({ children, title, subtitle, sx, ...other }) => (
               </Typography>
             )}
           </Box>
+          {action && <Box>{action}</Box>}
         </Stack>
       )}
       {children}
@@ -35,6 +36,7 @@ Page.propTypes = {
   children: PropTypes.node.isRequired,
   title: PropTypes.string,
   subtitle: PropTypes.string,
+  action: PropTypes.node,
   sx: PropTypes.object,
 };
 

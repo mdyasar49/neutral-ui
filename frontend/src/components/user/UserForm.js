@@ -23,11 +23,7 @@ const validationSchema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
   role: yup.string().required('Role is required'),
   isEdit: yup.boolean(),
-  password: yup.string().when(['isEdit'], ([isEdit], schema) => {
-    return isEdit
-      ? schema.min(6, 'Password must be at least 6 characters')
-      : schema.min(6, 'Password must be at least 6 characters').required('Password is required');
-  }),
+  password: yup.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const UserForm = ({ open, onClose, user = null, onSave }) => {
@@ -74,6 +70,23 @@ const UserForm = ({ open, onClose, user = null, onSave }) => {
     },
   });
 
+  const fetchTeachers = React.useCallback(async () => {
+    try {
+      const staffResponse = await userService.getAllUsers({ role: 'staff' });
+      const teacherResponse = await userService.getAllUsers({ role: 'teacher' });
+      
+      const staffList = staffResponse.users || staffResponse || [];
+      const teacherList = teacherResponse.users || teacherResponse || [];
+      
+      const combined = [...staffList, ...teacherList];
+      const uniqueTeachers = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      
+      setTeachers(uniqueTeachers);
+    } catch (err) {
+      console.error('Failed to fetch teachers', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (open && isAdmin) {
       fetchTeachers();
@@ -82,26 +95,7 @@ const UserForm = ({ open, onClose, user = null, onSave }) => {
       formik.resetForm();
       setError('');
     }
-  }, [open]);
-
-  const fetchTeachers = async () => {
-    try {
-      // Fetch both 'staff' and 'teacher' roles to ensure all potential teachers are listed
-      const staffResponse = await userService.getAllUsers({ role: 'staff' });
-      const teacherResponse = await userService.getAllUsers({ role: 'teacher' });
-      
-      const staffList = staffResponse.users || staffResponse || [];
-      const teacherList = teacherResponse.users || teacherResponse || [];
-      
-      // Combine and remove duplicates based on ID
-      const combined = [...staffList, ...teacherList];
-      const uniqueTeachers = Array.from(new Map(combined.map(item => [item.id, item])).values());
-      
-      setTeachers(uniqueTeachers);
-    } catch (err) {
-      console.error('Failed to fetch teachers', err);
-    }
-  };
+  }, [open, isAdmin, fetchTeachers, formik]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import LoginPage from "./Pages/auth/Login";
 import Register from "./Sections/auth/Register";
 import ForgotPasswordPage from "./Pages/auth/ForgotPassword";
+import SetupPassword from "./Pages/auth/SetupPassword";
 import HomePage from "./Pages/HomePages";
 import UserList from "./Pages/user/UserList";
 import ExamList from "./Pages/exam/ExamList";
@@ -36,6 +37,7 @@ function App() {
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<Register />} />
             <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path="/setup-password" element={<SetupPassword />} />
             
             {/* Protected Routes with Layout */}
             <Route element={<DashboardLayout />}>

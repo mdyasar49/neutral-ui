@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Container,
   Grid,
   Card,
   List,
@@ -11,7 +10,6 @@ import {
   Avatar,
   Typography,
   Divider,
-  Fab,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,9 +18,9 @@ import {
   Button,
   IconButton,
   Autocomplete,
+  Stack
 } from '@mui/material';
-import { Add as AddIcon, Email as EmailIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
-import { Helmet } from 'react-helmet-async';
+import { Add as AddIcon, Email as EmailIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import axios from 'axios';
 import Page from '../components/Page';
 import io from 'socket.io-client';
@@ -37,7 +35,6 @@ export default function Mail() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [users, setUsers] = useState([]);
   
   // Compose State
   const [currentTab, setCurrentTab] = useState('inbox'); // 'inbox' or 'sent'
@@ -51,30 +48,64 @@ export default function Mail() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
-  // User Context (Simulated or from Storage)
+  // User Context
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
   const currentUserId = userData.id || 1; 
   const currentUserRole = userData.role || 'admin';
 
+  const fetchMessages = useCallback(async () => {
+     setLoading(true);
+     try {
+         const response = await axios.get(`http://localhost:5000/api/messages/${currentUserId}`, {
+             params: { type: currentTab }
+         });
+         setMessages(Array.isArray(response.data) ? response.data : []);
+         // Keep selected message if it's still in the list, otherwise null
+         if (selectedMessage) {
+            const stillExists = response.data.find(m => m.id === selectedMessage.id);
+            if (!stillExists) setSelectedMessage(null);
+         }
+     } catch (e) {
+         console.error('Fetch Messages Error:', e);
+         setMessages([]);
+     } finally {
+         setLoading(false);
+     }
+  }, [currentUserId, currentTab, selectedMessage]);
+
   useEffect(() => {
     fetchMessages();
 
-    // Socket Listener
-    socket.on('new_mail', (data) => {
-        // If I am a recipient, refresh
-        // currentUserId is number, recipient_ids is likely strings or numbers
-        if (data.recipient_ids && data.recipient_ids.includes(currentUserId)) {
+    const handleNewMail = (data) => {
+        if (data.recipient_ids && data.recipient_ids.map(String).includes(String(currentUserId))) {
             fetchMessages();
             showNotification("New mail received!", "info");
         }
-    });
+    };
+
+    socket.on('new_mail', handleNewMail);
 
     return () => {
-        socket.off('new_mail');
+        socket.off('new_mail', handleNewMail);
     };
-  }, []);
+  }, [currentUserId, fetchMessages, showNotification]);
 
-  // Async Search Effect
+  const performSearch = useCallback(async (query) => {
+      setSearching(true);
+      try {
+          let roleParam = '';
+          if (currentUserRole !== 'admin') {
+              roleParam = '&role=student'; 
+          }
+          const res = await axios.get(`http://localhost:5000/api/users?search=${query}&limit=20${roleParam}`);
+          setSearchResults(res.data.users || []);
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setSearching(false);
+      }
+  }, [currentUserRole]);
+
   useEffect(() => {
       const delayDebounceFn = setTimeout(() => {
           if (searchQuery) {
@@ -85,55 +116,14 @@ export default function Mail() {
       }, 300); 
 
       return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const performSearch = async (query) => {
-      setSearching(true);
-      try {
-          // Role Logic: Admin -> All, Staff/Student -> Student only
-          let roleParam = '';
-          // If NOT admin, filter by student role (as requested: "student only")
-          if (currentUserRole !== 'admin') {
-              roleParam = '&role=student'; 
-          }
-          
-          const res = await axios.get(`http://localhost:5000/api/users?search=${query}&limit=20${roleParam}`);
-          setSearchResults(res.data.users || []);
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setSearching(false);
-      }
-  };
-
-  const fetchMessages = async () => {
-     setLoading(true);
-     try {
-         const response = await axios.get(`http://localhost:5000/api/messages/${currentUserId}`, {
-             params: { type: currentTab }
-         });
-         setMessages(response.data);
-         // Do not auto-select first message
-         setSelectedMessage(null);
-     } catch (e) {
-         console.error(e);
-     } finally {
-         setLoading(false);
-     }
-  };
-
-  useEffect(() => {
-     fetchMessages();
-  }, [currentTab]);
+  }, [searchQuery, performSearch]);
 
   const handleSend = async () => {
-      // Split recipients into Internal (ID) and External (Email string)
       const internalIds = [];
       const externalEmails = [];
       
       toUsers.forEach(u => {
           if (typeof u === 'string') {
-              // Basic email validation could be here
               if (u.includes('@')) externalEmails.push(u);
           } else if (u && u.id) {
               internalIds.push(u.id);
@@ -145,28 +135,42 @@ export default function Mail() {
           return;
       }
       
-      if (!subject || !body) return;
+      if (!subject || !body) {
+          showNotification("Please add a subject and message body.", "warning");
+          return;
+      }
 
       setSending(true);
       try {
+          const senderName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User';
           await axios.post('http://localhost:5000/api/messages', {
               sender_id: currentUserId,
               receiver_ids: internalIds, 
               receiver_emails: externalEmails,
               subject,
               body,
-              created_by: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User'
+              created_by: senderName
           });
           setComposeOpen(false);
           setSubject('');
           setBody('');
           setToUsers([]);
-          showNotification(`Message sent to ${internalIds.length + externalEmails.length} recipients!`, "success");
-          fetchMessages(); 
+          showNotification(`Message sent successfully!`, "success");
+          if (currentTab === 'sent') fetchMessages(); 
       } catch(e) {
           showNotification("Failed to send: " + (e.response?.data?.error || e.message), "error");
       } finally {
           setSending(false);
+      }
+  };
+
+  const handleDelete = async (id) => {
+      try {
+          // You might need a delete endpoint
+          // await axios.delete(`http://localhost:5000/api/messages/${id}`);
+          showNotification("Delete functionality coming soon.", "info");
+      } catch (e) {
+          showNotification("Failed to delete.", "error");
       }
   };
 
@@ -176,54 +180,63 @@ export default function Mail() {
     <Page 
         title="Mailbook" 
         subtitle="Manage your messages and notifications."
-        sx={{ height: '80vh' }}
+        action={
+            <Button 
+                startIcon={<AddIcon />} 
+                variant="contained" 
+                onClick={() => setComposeOpen(true)}
+                size="medium"
+            >
+                Compose Message
+            </Button>
+        }
+        sx={{ minHeight: '80vh' }}
     >
-      <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={() => setComposeOpen(true)}>
-             Compose
-          </Button>
-      </Box>
-
-      <Grid container spacing={2} sx={{ height: '100%' }}>
-         {/* Inbox List */}
-         <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-               <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" fontWeight="bold">
-                      {currentTab === 'inbox' ? 'Inbox' : 'Sent Items'}
-                  </Typography>
-                  <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={() => setComposeOpen(true)}>
-                     Compose
-                  </Button>
-               </Box>
-               <Box px={2} pb={1} display="flex" gap={1}>
-                   <Button 
-                       size="small" 
-                       variant={currentTab === 'inbox' ? 'contained' : 'outlined'} 
-                       onClick={() => setCurrentTab('inbox')}
-                   >
-                       Inbox
-                   </Button>
-                   <Button 
-                       size="small" 
-                       variant={currentTab === 'sent' ? 'contained' : 'outlined'} 
-                       onClick={() => setCurrentTab('sent')}
-                   >
-                       Sent
-                   </Button>
+      <Grid container spacing={2}>
+         <Grid item xs={12} md={4}>
+            <Card sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 250px)', minHeight: 500 }}>
+               <Box p={2}>
+                  <Stack direction="row" spacing={1}>
+                      <Button 
+                          fullWidth
+                          size="small" 
+                          variant={currentTab === 'inbox' ? 'contained' : 'outlined'} 
+                          onClick={() => setCurrentTab('inbox')}
+                      >
+                          Inbox
+                      </Button>
+                      <Button 
+                          fullWidth
+                          size="small" 
+                          variant={currentTab === 'sent' ? 'contained' : 'outlined'} 
+                          onClick={() => setCurrentTab('sent')}
+                      >
+                          Sent
+                      </Button>
+                  </Stack>
                </Box>
                <Divider />
                <List sx={{ flexGrow: 1, overflow: 'auto' }}>
-                  {messages.length === 0 ? (
-                      <Typography sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>No messages</Typography>
+                  {!Array.isArray(messages) || messages.length === 0 ? (
+                      <Box sx={{ p: 4, textAlign: 'center' }}>
+                          <Typography color="text.secondary" variant="body2" gutterBottom>
+                              No messages found in your {currentTab}.
+                          </Typography>
+                          <Button 
+                              size="small" 
+                              startIcon={<AddIcon />} 
+                              onClick={() => setComposeOpen(true)}
+                              sx={{ mt: 1 }}
+                          >
+                              Compose One
+                          </Button>
+                      </Box>
                   ) : (
                       messages.map((msg) => {
                           const isSent = currentTab === 'sent';
-                          // For Sent: name of receiver (internal) OR email (external)
-                          // For Inbox: name of sender (internal)
                           const displayName = isSent 
-                            ? (msg.internalEmail ? `${msg.firstName} ${msg.lastName}` : msg.receiver_email) 
-                            : `${msg.firstName} ${msg.lastName}`;
+                            ? (msg.internalEmail ? (`${msg.firstName || ''} ${msg.lastName || ''}`.trim() || 'Internal User') : msg.receiver_email) 
+                            : (`${msg.firstName || ''} ${msg.lastName || ''}`.trim() || msg.senderEmail || 'Unknown Sender');
                           
                           const label = isSent ? `To: ${displayName}` : displayName;
                           const statusText = isSent && msg.status ? ` • ${msg.status}` : '';
@@ -235,16 +248,26 @@ export default function Mail() {
                              selected={selectedMessage?.id === msg.id}
                              onClick={() => setSelectedMessage(msg)}
                              divider
+                             sx={{
+                                borderLeft: !msg.is_read && !isSent ? '4px solid #00AB55' : 'none',
+                             }}
                           >
                              <ListItemAvatar>
                                 <Avatar sx={{ bgcolor: isSent ? 'primary.main' : 'secondary.main' }}>
-                                   {displayName?.[0]?.toUpperCase() || 'U'}
+                                   {String(displayName?.[0] || 'U').toUpperCase()}
                                 </Avatar>
                              </ListItemAvatar>
                              <ListItemText 
-                                primary={msg.subject} 
-                                secondary={`${label} ${statusText} • ${msg.created_at}`}
-                                primaryTypographyProps={{ fontWeight: !msg.is_read && !isSent ? 'bold' : 'normal' }}
+                                primary={msg.subject || '(No Subject)'} 
+                                secondary={
+                                    <Typography variant="caption" color="text.secondary" noWrap>
+                                        {label} {statusText} • {msg.created_at}
+                                    </Typography>
+                                }
+                                primaryTypographyProps={{ 
+                                    fontWeight: !msg.is_read && !isSent ? 'bold' : 'normal',
+                                    noWrap: true
+                                }}
                              />
                           </ListItem>
                           );
@@ -254,9 +277,8 @@ export default function Mail() {
             </Card>
          </Grid>
 
-         {/* Message Detail */}
-         <Grid item xs={12} md={8} sx={{ height: '100%' }}>
-            <Card sx={{ height: '100%', p: 4, overflow: 'auto' }}>
+         <Grid item xs={12} md={8}>
+            <Card sx={{ p: 4, height: 'calc(100vh - 250px)', minHeight: 500, overflow: 'auto' }}>
                {selectedMessage ? (
                    (() => {
                        const isSent = currentTab === 'sent';
@@ -264,19 +286,18 @@ export default function Mail() {
                        
                        if (isSent) {
                            label = "To:";
-                           // Handle internal vs external logic carefully
                            name = selectedMessage.internalEmail 
                                ? `${selectedMessage.firstName} ${selectedMessage.lastName}` 
-                               : (selectedMessage.receiver_email ? 'External Recipient' : 'Unknown');
+                               : (selectedMessage.receiver_email || 'External Recipient');
                            email = selectedMessage.internalEmail || selectedMessage.receiver_email;
                        } else {
                            label = "From:";
-                           name = `${selectedMessage.firstName} ${selectedMessage.lastName}`;
+                           name = `${selectedMessage.firstName} ${selectedMessage.lastName}`.trim() || 'Unknown Sender';
                            email = selectedMessage.senderEmail;
                        }
 
                        const dName = (name || 'User').trim();
-                       const initials = dName[0]?.toUpperCase() || 'U';
+                       const initials = String(dName[0] || 'U').toUpperCase();
 
                        return (
                            <>
@@ -286,7 +307,7 @@ export default function Mail() {
                                         {initials}
                                     </Avatar>
                                     <Box>
-                                       <Typography variant="h5" fontWeight="bold">{selectedMessage.subject}</Typography>
+                                       <Typography variant="h5" fontWeight="bold">{selectedMessage.subject || '(No Subject)'}</Typography>
                                        <Typography variant="body2" color="text.secondary">
                                           {label} {dName} &lt;{email || 'No Email'}&gt;
                                           {isSent && selectedMessage.status && ` • ${selectedMessage.status}`}
@@ -296,30 +317,32 @@ export default function Mail() {
                                        </Typography>
                                     </Box>
                                  </Box>
-                                 <IconButton color="error"><DeleteIcon /></IconButton>
+                                 <IconButton color="error" onClick={() => handleDelete(selectedMessage.id)}>
+                                    <DeleteIcon />
+                                 </IconButton>
                               </Box>
                               <Divider sx={{ mb: 3 }} />
-                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
                                  {selectedMessage.body}
                               </Typography>
                            </>
                        );
                    })()
                ) : (
-                   <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-                       <EmailIcon sx={{ fontSize: 80, mb: 2 }} />
-                       <Typography variant="h6">Select a message to read</Typography>
+                   <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
+                       <EmailIcon sx={{ fontSize: 100, mb: 2 }} />
+                       <Typography variant="h6">Select a message from the list to read</Typography>
                    </Box>
                )}
             </Card>
          </Grid>
       </Grid>
 
-      {/* Compose Dialog */}
       <Dialog open={composeOpen} onClose={() => setComposeOpen(false)} fullWidth maxWidth="sm">
-         <DialogTitle>New Message</DialogTitle>
-         <DialogContent>
-            <Box sx={{ mt: 1 }}>
+         <DialogTitle sx={{ pb: 1 }}>New Message</DialogTitle>
+         <Divider />
+         <DialogContent sx={{ py: 2 }}>
+            <Stack spacing={2}>
                <Autocomplete
                   multiple
                   freeSolo
@@ -338,18 +361,16 @@ export default function Mail() {
                   renderInput={(params) => (
                       <TextField 
                           {...params} 
-                          label="To (Recipients)" 
-                          placeholder="Search by name or email..."
+                          label="Recipient(s)" 
+                          placeholder="Search users or enter email..."
                           fullWidth 
-                          margin="dense"
-                          helperText="Type to search for users"
+                          helperText="Press enter for external emails"
                       />
                   )}
                />
                <TextField 
                   fullWidth 
                   label="Subject" 
-                  margin="dense" 
                   value={subject} 
                   onChange={(e) => setSubject(e.target.value)} 
                />
@@ -357,17 +378,22 @@ export default function Mail() {
                   fullWidth 
                   label="Message" 
                   multiline 
-                  rows={6} 
-                  margin="dense" 
+                  rows={10} 
                   value={body} 
                   onChange={(e) => setBody(e.target.value)} 
                />
-            </Box>
+            </Stack>
          </DialogContent>
-         <DialogActions>
-            <Button onClick={() => setComposeOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleSend} disabled={sending || toUsers.length === 0}>
-               {sending ? 'Sending...' : 'Send'}
+         <Divider />
+         <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={() => setComposeOpen(false)} color="inherit">Cancel</Button>
+            <Button 
+                variant="contained" 
+                onClick={handleSend} 
+                disabled={sending || toUsers.length === 0}
+                sx={{ px: 4 }}
+            >
+               {sending ? 'Sending...' : 'Send Now'}
             </Button>
          </DialogActions>
       </Dialog>
