@@ -36,11 +36,10 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { Helmet } from 'react-helmet-async';
-
 import { useNotification } from '../context/NotificationContext';
 import axios from 'axios';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Page from '../components/Page';
 
 export default function Calendar() {
   const now = new Date();
@@ -95,12 +94,14 @@ export default function Calendar() {
       return;
     }
     try {
+      const personaName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Admin';
+      
       const payload = {
         title: newEvent.title,
         event_date: newEvent.date,
         event_type: newEvent.type,
         color: newEvent.color,
-        created_by: user.id || 1
+        created_by: personaName
       };
       await axios.post('http://localhost:5000/api/calendar', payload);
       showNotification('Event added successfully', 'success');
@@ -154,22 +155,13 @@ export default function Calendar() {
   // ... (previous helper functions handleAdd/Delete)
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10 }}>
-      <Helmet>
-        <title> Calendar | Neutral UI </title>
-      </Helmet>
-
-      <Box sx={{ mb: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Academic Calendar
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            World Calendar mode active with festivals & campus events.
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<EventIcon />} onClick={() => setOpenAdd(true)}>Schedule Event</Button>
-      </Box>
+    <Page 
+      title="Academic Calendar" 
+      subtitle="World Calendar mode active with festivals & campus events."
+    >
+       <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
+          <Button variant="contained" startIcon={<EventIcon />} onClick={() => setOpenAdd(true)}>Schedule Event</Button>
+       </Box>
 
       <Grid container spacing={3}>
         {/* Calendar View */}
@@ -383,7 +375,6 @@ export default function Calendar() {
            <Button onClick={() => setOpenAll(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
-    </Container>
+    </Page>
   );
 }

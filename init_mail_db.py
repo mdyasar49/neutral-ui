@@ -32,9 +32,14 @@ def create_messages_table():
                 subject VARCHAR(255),
                 body TEXT,
                 is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INT,
+                modified_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                modified_by INT,
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (modified_by) REFERENCES users(id) ON DELETE SET NULL
             )
             """)
             conn.commit()
@@ -45,9 +50,9 @@ def create_messages_table():
             admin = cursor.fetchone()
             if admin:
                 cursor.execute("""
-                    INSERT INTO messages (sender_id, receiver_id, subject, body) 
-                    VALUES (%s, %s, 'Welcome to Mail', 'This is your first message in the new Mail system.')
-                """, (admin[0], admin[0]))
+                    INSERT INTO messages (sender_id, receiver_id, subject, body, created_by) 
+                    VALUES (%s, %s, 'Welcome to Mail', 'This is your first message in the new Mail system.', %s)
+                """, (admin[0], admin[0], 'System'))
                 conn.commit()
                 print("Welcome message sent.")
                 

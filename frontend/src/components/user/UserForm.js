@@ -53,6 +53,8 @@ const UserForm = ({ open, onClose, user = null, onSave }) => {
     onSubmit: async (values) => {
       try {
         setError('');
+        const creatorName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Admin';
+        
         const userData = {
           firstName: values.firstName,
           lastName: values.lastName,
@@ -60,6 +62,7 @@ const UserForm = ({ open, onClose, user = null, onSave }) => {
           role: values.role,
           teacher_id: isTeacher ? currentUser.id : values.teacher_id,
           ...(values.password && { password: values.password }),
+          [isEdit ? 'modified_by' : 'created_by']: creatorName
         };
         
         await onSave(userData, user?.id);

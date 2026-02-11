@@ -1,6 +1,5 @@
 import mysql.connector
 from configparser import ConfigParser
-import bcrypt
 
 def create_admin():
     config = ConfigParser()
@@ -23,16 +22,15 @@ def create_admin():
         existing_admin = cursor.fetchone()
         
         password = 'password123'
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         if existing_admin:
             print("Admin already exists. Updating password to 'password123'...")
             query = "UPDATE users SET password = %s WHERE email = 'admin@neutral.com'"
-            cursor.execute(query, (hashed_password,))
+            cursor.execute(query, (password,))
         else:
             print("Creating new admin user...")
-            query = "INSERT INTO users (firstName, lastName, email, password, role) VALUES (%s, %s, %s, %s, %s)"
-            cursor.execute(query, ('System', 'Admin', 'admin@neutral.com', hashed_password, 'admin'))
+            query = "INSERT INTO users (firstName, lastName, email, password, role, created_by) VALUES (%s, %s, %s, %s, %s, %s)"
+            cursor.execute(query, ('System', 'Admin', 'admin@neutral.com', password, 'admin', 'System'))
             
         connection.commit()
         print(f"Success! You can login with:\nEmail: admin@neutral.com\nPassword: {password}")

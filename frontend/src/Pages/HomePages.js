@@ -26,8 +26,8 @@ import {
   CalendarMonth as CalendarIcon
 } from '@mui/icons-material';
 import { Helmet } from 'react-helmet-async';
-import userService from '../services/userService';
-import examService from '../services/examService';
+import axios from 'axios';
+import Page from '../components/Page';
 import { useNotification } from '../context/NotificationContext';
 
 // ----------------------------------------------------------------------
@@ -48,8 +48,8 @@ export default function HomePage() {
   const [stats, setStats] = useState({
     users: 0,
     exams: 0,
-    pendingExams: 0,
-    completedExams: 0
+    classes: 0,
+    results: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,21 +57,8 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch Counts (Parallel requests)
-        const [usersData, examsData] = await Promise.all([
-          userService.getAllUsers({ limit: 1000 }), 
-          examService.getAllExams()
-        ]);
-
-        const usersList = usersData.users || usersData || [];
-        const examsList = examsData.exams || examsData || [];
-
-        setStats({
-          users: usersList.length,
-          exams: examsList.length,
-          pendingExams: examsList.filter(e => e.status === 'draft' || e.status === 'active').length,
-          completedExams: examsList.filter(e => e.status === 'completed').length
-        });
+        const response = await axios.get('http://localhost:5000/api/dashboard/stats');
+        setStats(response.data);
       } catch (error) {
         console.error("Dashboard data fetch error", error);
         showNotification("Failed to fetch dashboard metrics", "error");
@@ -144,11 +131,7 @@ export default function HomePage() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10 }}>
-       <Helmet>
-        <title> Dashboard | Neutral UI </title>
-      </Helmet>
-
+    <Page title="Dashboard">
       {/* Hero Section */}
       <WelcomeHero />
 
@@ -172,19 +155,18 @@ export default function HomePage() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard 
-            title="Results Published" 
-            value={stats.completedExams} 
-            icon={<TrophyIcon />} 
-            color="error" 
+            title="Total Classes" 
+            value={stats.classes} 
+            icon={<ClassIcon />} 
+            color="success" 
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard 
-            title="Active Sessions" 
-            value="12" 
-            icon={<ActivityIcon />} 
-            color="success" 
-            subtext="+24% this week"
+            title="Results Published" 
+            value={stats.results} 
+            icon={<TrophyIcon />} 
+            color="error" 
           />
         </Grid>
       </Grid>
@@ -281,6 +263,6 @@ export default function HomePage() {
           </Card>
         </Grid>
       </Grid>
-    </Container>
+    </Page>
   );
 }

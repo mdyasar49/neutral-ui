@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -24,44 +24,43 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Search as SearchIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import userService from '../../services/userService';
-import Loading from '../../components/Loading';
-import { PAGE_TITLES } from '../../constants';
-import UserForm from '../../components/user/UserForm';
-import { useNotification } from '../../context/NotificationContext';
+} from "@mui/icons-material";
+import userService from "../../services/userService";
+import Loading from "../../components/Loading";
+import { PAGE_TITLES } from "../../constants";
+import UserForm from "../../components/user/UserForm";
+import { useNotification } from "../../context/NotificationContext";
 
 const UserList = () => {
-  
   // State management
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalUsers, setTotalUsers] = useState(0);
-  
+
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
-  
+
   // User Form Dialog state
   const [userFormOpen, setUserFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  
+
   const showNotification = useNotification();
 
   // Set page title
   useEffect(() => {
-    document.title = PAGE_TITLES.STAFF_USER_LIST || 'User List';
+    document.title = PAGE_TITLES.STAFF_USER_LIST || "User List";
   }, []);
 
   // Fetch users on component mount and when filters change
@@ -76,23 +75,44 @@ const UserList = () => {
       const params = {
         page: page + 1,
         limit: rowsPerPage,
-        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(roleFilter !== "all" && { role: roleFilter }),
         ...(searchQuery && { search: searchQuery }),
       };
-      
+
       const response = await userService.getAllUsers(params);
       setUsers(response.users || response || []);
       setTotalUsers(response.total || response.length || 0);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
       // Mock data for development if API fails
       if (users.length === 0) {
-         setUsers([
-          { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', role: 'admin', status: 'active' },
-          { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', role: 'staff', status: 'active' },
-          { id: 3, firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com', role: 'student', status: 'active' },
+        setUsers([
+          {
+            id: 1,
+            firstName: "John",
+            lastName: "Doe",
+            email: "john@example.com",
+            role: "admin",
+            status: "active",
+          },
+          {
+            id: 2,
+            firstName: "Jane",
+            lastName: "Smith",
+            email: "jane@example.com",
+            role: "staff",
+            status: "active",
+          },
+          {
+            id: 3,
+            firstName: "Bob",
+            lastName: "Johnson",
+            email: "bob@example.com",
+            role: "student",
+            status: "active",
+          },
         ]);
-        setTotalUsers(3); 
+        setTotalUsers(3);
       }
     } finally {
       setLoading(false);
@@ -105,8 +125,8 @@ const UserList = () => {
   };
 
   const handleRefresh = () => {
-    setSearchQuery('');
-    setRoleFilter('all');
+    setSearchQuery("");
+    setRoleFilter("all");
     setPage(0);
     fetchUsers();
   };
@@ -128,11 +148,11 @@ const UserList = () => {
   const handleDeleteConfirm = async () => {
     try {
       await userService.deleteUser(userToDelete.id);
-      showNotification('User deleted successfully', 'success');
+      showNotification("User deleted successfully", "success");
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
-      showNotification('Failed to delete user', 'error');
+      console.error("Error deleting user:", error);
+      showNotification("Failed to delete user", "error");
     } finally {
       setDeleteDialogOpen(false);
       setUserToDelete(null);
@@ -148,33 +168,33 @@ const UserList = () => {
     setSelectedUser(null);
     setUserFormOpen(true);
   };
-  
+
   const handleUserSave = async (userData, userId) => {
     try {
       if (userId) {
         await userService.updateUser(userId, userData);
-        showNotification('User updated successfully');
+        showNotification("User updated successfully");
       } else {
         await userService.createUser(userData);
-        showNotification('User created successfully');
+        showNotification("User created successfully");
       }
       fetchUsers();
     } catch (error) {
-      console.error('Error saving user:', error);
+      console.error("Error saving user:", error);
       throw error; // Re-throw to be caught by the form
     }
   };
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'admin':
-        return 'error';
-      case 'staff':
-        return 'primary';
-      case 'student':
-        return 'success';
+      case "admin":
+        return "error";
+      case "staff":
+        return "primary";
+      case "student":
+        return "success";
       default:
-        return 'default';
+        return "default";
     }
   };
 
@@ -185,7 +205,14 @@ const UserList = () => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Typography variant="h4" component="h1" fontWeight="bold">
           User Management
         </Typography>
@@ -201,12 +228,19 @@ const UserList = () => {
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <TextField
             placeholder="Search users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -216,7 +250,7 @@ const UserList = () => {
             }}
             sx={{ flexGrow: 1, minWidth: 250 }}
           />
-          
+
           <FormControl sx={{ minWidth: 150 }}>
             <InputLabel>Role</InputLabel>
             <Select
@@ -246,17 +280,33 @@ const UserList = () => {
       </Paper>
 
       {/* User Table */}
-      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
+      <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
         <TableContainer>
           <Table>
-            <TableHead sx={{ backgroundColor: 'primary.main' }}>
+            <TableHead sx={{ backgroundColor: "primary.main" }}>
               <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Role</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  S.No
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  Name
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  Email
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  Role
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  Created By
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  Status
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
                   Actions
                 </TableCell>
               </TableRow>
@@ -264,20 +314,20 @@ const UserList = () => {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
                       No users found
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
+                users.map((user, index) => (
                   <TableRow
                     key={user.id}
                     hover
-                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                   >
-                    <TableCell>{user.id}</TableCell>
+                    <TableCell>{page * rowsPerPage + index + 1}</TableCell>
                     <TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
@@ -285,13 +335,14 @@ const UserList = () => {
                         label={user.role}
                         color={getRoleColor(user.role)}
                         size="small"
-                        sx={{ textTransform: 'capitalize' }}
+                        sx={{ textTransform: "capitalize" }}
                       />
                     </TableCell>
+                    <TableCell>{user.created_by || "-"}</TableCell>
                     <TableCell>
                       <Chip
-                        label={user.status || 'active'}
-                        color={user.status === 'active' ? 'success' : 'default'}
+                        label={user.status || "active"}
+                        color={user.status === "active" ? "success" : "default"}
                         size="small"
                         variant="outlined"
                       />
@@ -331,10 +382,13 @@ const UserList = () => {
       </Paper>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete user{' '}
+          Are you sure you want to delete user{" "}
           <strong>
             {userToDelete?.firstName} {userToDelete?.lastName}
           </strong>
@@ -342,7 +396,11 @@ const UserList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
             Delete
           </Button>
         </DialogActions>
@@ -355,7 +413,6 @@ const UserList = () => {
         user={selectedUser}
         onSave={handleUserSave}
       />
-
     </Container>
   );
 };

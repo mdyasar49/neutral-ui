@@ -3,7 +3,7 @@ from flask_cors import CORS
 import mysql.connector
 from configparser import ConfigParser
 import os
-import bcrypt
+# import bcrypt
 import jwt
 import datetime
 import smtplib
@@ -38,6 +38,48 @@ def get_db_connection():
 SECRET_KEY = "your_secret_key"
 
 # ==========================================
+# DASHBOARD & ANALYTICS
+# ==========================================
+
+@app.route('/api/dashboard/stats', methods=['GET'])
+def get_dashboard_stats():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database Error"}), 500
+    
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # User Counts
+        cursor.execute("SELECT COUNT(*) as count FROM users")
+        users_count = cursor.fetchone()['count']
+
+        # Exam Counts
+        cursor.execute("SELECT COUNT(*) as count FROM exams")
+        exams_count = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) as count FROM exams WHERE status = 'published'")
+        published_exams = cursor.fetchone()['count']
+
+        # Class Counts
+        cursor.execute("SELECT COUNT(*) as count FROM classes")
+        classes_count = cursor.fetchone()['count']
+
+        # Result Counts
+        cursor.execute("SELECT COUNT(*) as count FROM results")
+        results_count = cursor.fetchone()['count']
+
+        conn.close()
+        return jsonify({
+            "users": users_count,
+            "exams": exams_count,
+            "published_exams": published_exams,
+            "classes": classes_count,
+            "results": results_count
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
 # AUTH & USER ROUTES
 # ==========================================
 
@@ -61,10 +103,10 @@ def register_user():
             conn.close()
             return jsonify({"error": "User already exists"}), 400
 
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        # hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         try:
-            query = "INSERT INTO users (firstName, lastName, email, password, role) VALUES (%s, %s, %s, %s, %s)"
-            cursor.execute(query, (firstName, lastName, email, hashed_password, role))
+            query = "INSERT INTO users (firstName, lastName, email, password, role, created_by) VALUES (%s, %s, %s, %s, %s, %s)"
+            cursor.execute(query, (firstName, lastName, email, password, role, 'System')) # Default created_by 'System'
             conn.commit()
             conn.close()
             return jsonify({"message": "User registered successfully"}), 201
@@ -86,7 +128,7 @@ def login_user():
         user = cursor.fetchone()
         conn.close()
 
-        if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        if user and password == user['password']:
             token = jwt.encode({
                 'user_id': user['id'],
                 'role': user['role'],
@@ -188,7 +230,7 @@ def handle_users():
             total_count = cursor.fetchone()['total']
             
             # Data Query (Fixed %s to %S for seconds)
-            query = f"SELECT id, firstName, lastName, email, role, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%S') as created_at{base_query}{where_clause} ORDER BY created_at DESC LIMIT %s OFFSET %s"
+            query = f"SELECT id, firstName, lastName, email, role, created_by, modified_by, DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%S') as created_at{base_query}{where_clause} ORDER BY created_on DESC LIMIT %s OFFSET %s"
             params.extend([limit, offset])
             
             cursor.execute(query, tuple(params))
@@ -214,11 +256,12 @@ def handle_users():
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
             
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        # hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         try:
-            query = "INSERT INTO users (firstName, lastName, email, password, role, teacher_id) VALUES (%s, %s, %s, %s, %s, %s)"
-            cursor.execute(query, (firstName, lastName, email, hashed_password, role, teacher_id))
+            creator_name = data.get('created_by', 'Admin')
+            query = "INSERT INTO users (firstName, lastName, email, password, role, teacher_id, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+            cursor.execute(query, (firstName, lastName, email, password, role, teacher_id, creator_name))
             conn.commit()
             conn.close()
             return jsonify({"message": "User created successfully"}), 201
@@ -254,12 +297,12 @@ def handle_user(id):
         
         try:
             if password:
-                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                query = "UPDATE users SET firstName=%s, lastName=%s, email=%s, role=%s, teacher_id=%s, password=%s WHERE id=%s"
-                cursor.execute(query, (firstName, lastName, email, role, teacher_id, hashed_password, id))
+                # hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                query = "UPDATE users SET firstName=%s, lastName=%s, email=%s, role=%s, teacher_id=%s, password=%s, modified_by=%s WHERE id=%s"
+                cursor.execute(query, (firstName, lastName, email, role, teacher_id, password, 'Admin', id))
             else:
-                query = "UPDATE users SET firstName=%s, lastName=%s, email=%s, role=%s, teacher_id=%s WHERE id=%s"
-                cursor.execute(query, (firstName, lastName, email, role, teacher_id, id))
+                query = "UPDATE users SET firstName=%s, lastName=%s, email=%s, role=%s, teacher_id=%s, modified_by=%s WHERE id=%s"
+                cursor.execute(query, (firstName, lastName, email, role, teacher_id, 'Admin', id))
             
             conn.commit()
             conn.close()
@@ -309,13 +352,13 @@ def get_exams():
         query = f"""
         SELECT 
             e.id, e.title, e.description, e.duration_minutes AS duration, 
-            e.total_marks AS totalMarks, e.status, e.created_at AS scheduledDate,
-            CONCAT(u.firstName, ' ', u.lastName) AS createdBy,
+            e.total_marks AS totalMarks, e.status, e.created_on AS scheduledDate,
+            e.created_by AS createdBy, e.modified_by AS modifiedBy,
+            DATE_FORMAT(e.created_on, '%Y-%m-%d %H:%i:%S') as created_at,
             (SELECT COUNT(*) FROM questions q WHERE q.exam_id = e.id) AS questionCount
         FROM exams e
-        LEFT JOIN users u ON e.created_by = u.id
         {where_clause}
-        ORDER BY e.created_at DESC
+        ORDER BY e.created_on DESC
         LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])
@@ -337,7 +380,7 @@ def get_exam_details(id):
     if conn:
         cursor = conn.cursor(dictionary=True)
         # Fetch Exam
-        cursor.execute("SELECT * FROM exams WHERE id = %s", (id,))
+        cursor.execute("SELECT *, DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%S') as created_at FROM exams WHERE id = %s", (id,))
         exam = cursor.fetchone()
         
         if not exam:
@@ -369,8 +412,8 @@ def update_exam(id):
             
             # 1. Update Exam Details
             status = data.get('status', 'draft')
-            update_query = "UPDATE exams SET title=%s, description=%s, duration_minutes=%s, total_marks=%s, status=%s WHERE id=%s"
-            cursor.execute(update_query, (title, description, duration, total_marks, status, id))
+            update_query = "UPDATE exams SET title=%s, description=%s, duration_minutes=%s, total_marks=%s, status=%s, modified_by=%s WHERE id=%s"
+            cursor.execute(update_query, (title, description, duration, total_marks, status, 'Admin', id))
 
             # 2. Update Questions (Strategy: Delete all old questions and re-insert new ones)
             # This is simpler than tracking diffs for this scale
@@ -387,8 +430,8 @@ def update_exam(id):
                 if isinstance(options, list):
                     options = json.dumps(options)
                 
-                q_query = "INSERT INTO questions (exam_id, question_text, question_type, options, correct_answer, marks) VALUES (%s, %s, %s, %s, %s, %s)"
-                cursor.execute(q_query, (id, q_text, q_type, options, correct, marks))
+                q_query = "INSERT INTO questions (exam_id, question_text, question_type, options, correct_answer, marks, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(q_query, (id, q_text, q_type, options, correct, marks, data.get('modified_by', 'Admin')))
 
             conn.commit()
             conn.close()
@@ -405,7 +448,7 @@ def create_exam():
     description = data.get('description')
     duration = data.get('duration', 60)
     total_marks = data.get('totalMarks', 100)
-    created_by = data.get('createdBy', 1) # Default to admin (ID 1) if not provided
+    created_by = data.get('created_by', 'Admin') 
     questions = data.get('questions', [])
 
     conn = get_db_connection()
@@ -431,8 +474,8 @@ def create_exam():
                 if isinstance(options, list):
                     options = json.dumps(options)
                 
-                q_query = "INSERT INTO questions (exam_id, question_text, question_type, options, correct_answer, marks) VALUES (%s, %s, %s, %s, %s, %s)"
-                cursor.execute(q_query, (exam_id, q_text, q_type, options, correct, marks))
+                q_query = "INSERT INTO questions (exam_id, question_text, question_type, options, correct_answer, marks, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(q_query, (exam_id, q_text, q_type, options, correct, marks, created_by))
 
             conn.commit()
             conn.close()
@@ -469,24 +512,24 @@ def get_messages(user_id):
             query = """
             SELECT 
                 m.id, m.sender_id, m.receiver_id, m.receiver_email, m.subject, m.body, m.is_read, m.status,
-                DATE_FORMAT(m.created_at, '%Y-%m-%d %H:%i:%S') as created_at,
+                DATE_FORMAT(m.created_on, '%Y-%m-%d %H:%i:%S') as created_at,
                 u.firstName, u.lastName, u.email as internalEmail
             FROM messages m
             LEFT JOIN users u ON m.receiver_id = u.id
             WHERE m.sender_id = %s
-            ORDER BY m.created_at DESC
+            ORDER BY m.created_on DESC
             """
         else:
             # Fetch messages received BY this user (Inbox)
             query = """
             SELECT 
                 m.id, m.sender_id, m.receiver_id, m.subject, m.body, m.is_read, m.status,
-                DATE_FORMAT(m.created_at, '%Y-%m-%d %H:%i:%S') as created_at,
+                DATE_FORMAT(m.created_on, '%Y-%m-%d %H:%i:%S') as created_at,
                 u.firstName, u.lastName, u.email as senderEmail
             FROM messages m
             JOIN users u ON m.sender_id = u.id
             WHERE m.receiver_id = %s
-            ORDER BY m.created_at DESC
+            ORDER BY m.created_on DESC
             """
             
         cursor.execute(query, (user_id,))
@@ -557,18 +600,18 @@ def send_message():
             cursor = conn.cursor()
             
             # --- DAILY LIMIT CHECK ---
-            cursor.execute("SELECT COUNT(DISTINCT receiver_id) FROM messages WHERE sender_id=%s AND DATE(created_at)=%s AND receiver_id IS NOT NULL", (sender_id, today))
+            cursor.execute("SELECT COUNT(DISTINCT receiver_id) FROM messages WHERE sender_id=%s AND DATE(created_on)=%s AND receiver_id IS NOT NULL", (sender_id, today))
             count_internal = cursor.fetchone()[0]
             
-            cursor.execute("SELECT COUNT(DISTINCT receiver_email) FROM messages WHERE sender_id=%s AND DATE(created_at)=%s AND receiver_id IS NULL", (sender_id, today))
+            cursor.execute("SELECT COUNT(DISTINCT receiver_email) FROM messages WHERE sender_id=%s AND DATE(created_on)=%s AND receiver_id IS NULL", (sender_id, today))
             count_external = cursor.fetchone()[0]
             
             current_total = count_internal + count_external
             
-            cursor.execute("SELECT DISTINCT receiver_id FROM messages WHERE sender_id=%s AND DATE(created_at)=%s AND receiver_id IS NOT NULL", (sender_id, today))
+            cursor.execute("SELECT DISTINCT receiver_id FROM messages WHERE sender_id=%s AND DATE(created_on)=%s AND receiver_id IS NOT NULL", (sender_id, today))
             existing_ids = {row[0] for row in cursor.fetchall()}
             
-            cursor.execute("SELECT DISTINCT receiver_email FROM messages WHERE sender_id=%s AND DATE(created_at)=%s AND receiver_id IS NULL", (sender_id, today))
+            cursor.execute("SELECT DISTINCT receiver_email FROM messages WHERE sender_id=%s AND DATE(created_on)=%s AND receiver_id IS NULL", (sender_id, today))
             existing_emails = {row[0] for row in cursor.fetchall()}
             
             new_ids_count = len([uid for uid in internal_ids if uid not in existing_ids])
@@ -581,18 +624,21 @@ def send_message():
                 }), 403
 
             # --- INSERT MESSAGES (DB) ---
-            insert_query = "INSERT INTO messages (sender_id, receiver_id, receiver_email, subject, body) VALUES (%s, %s, %s, %s, %s)"
+            insert_query = "INSERT INTO messages (sender_id, receiver_id, receiver_email, subject, body, created_by) VALUES (%s, %s, %s, %s, %s, %s)"
             values = []
+            
+            # Use sender name if possible
+            creator_name = data.get('created_by', 'User')
             
             # 1. Internal Users
             for uid in internal_ids:
-                values.append((sender_id, uid, None, subject, body))
+                values.append((sender_id, uid, None, subject, body, creator_name))
                 
             # 2. External Emails
             for email in external_emails:
-                values.append((sender_id, None, email, subject, body))
+                values.append((sender_id, None, email, subject, body, creator_name))
             
-            cursor.execute("DELETE FROM messages WHERE created_at < NOW() - INTERVAL 7 DAY")
+            cursor.execute("DELETE FROM messages WHERE created_on < NOW() - INTERVAL 7 DAY")
             cursor.executemany(insert_query, values)
             conn.commit()
             
@@ -646,8 +692,8 @@ def assign_exam(id):
             # Our current schema doesn't force unique (user_id, exam_id), but it should.
             # We'll just insert.
             
-            query = "INSERT INTO results (user_id, exam_id, status, score) VALUES (%s, %s, 'pending', 0)"
-            values = [(uid, id) for uid in student_ids]
+            query = "INSERT INTO results (user_id, exam_id, status, score, created_by) VALUES (%s, %s, 'pending', 0, %s)"
+            values = [(uid, id, 'System') for uid in student_ids]
             
             cursor.executemany(query, values)
             conn.commit()
@@ -671,8 +717,8 @@ def get_results():
         query = """
         SELECT 
             r.id, e.title as examTitle, CONCAT(u.firstName, ' ', u.lastName) as studentName,
-            r.score, e.total_marks as total, DATE_FORMAT(r.submitted_at, '%Y-%m-%d') as date,
-            r.status
+            r.score, e.total_marks as total, DATE_FORMAT(r.created_on, '%Y-%m-%d') as date,
+            r.status, r.created_by, r.modified_by
         FROM results r
         JOIN exams e ON r.exam_id = e.id
         JOIN users u ON r.user_id = u.id
@@ -682,7 +728,7 @@ def get_results():
             query += " WHERE r.user_id = %s"
             params.append(user_id)
         
-        query += " ORDER BY r.submitted_at DESC"
+        query += " ORDER BY r.created_on DESC"
         cursor.execute(query, tuple(params))
         results = cursor.fetchall()
         conn.close()
@@ -744,8 +790,9 @@ def handle_classes():
         desc = data.get('description')
         
         try:
-            cursor.execute("INSERT INTO classes (name, teacher_id, class_code, description) VALUES (%s, %s, %s, %s)", 
-                           (name, teacher_id, code, desc))
+            creator_name = data.get('created_by', 'Admin')
+            cursor.execute("INSERT INTO classes (name, teacher_id, class_code, description, created_by) VALUES (%s, %s, %s, %s, %s)", 
+                           (name, teacher_id, code, desc, creator_name))
             conn.commit()
             conn.close()
             return jsonify({"message": "Class created"}), 201
@@ -765,8 +812,9 @@ def handle_single_class(id):
             desc = data.get('description')
             
             try:
-                cursor.execute("UPDATE classes SET name = %s, teacher_id = %s, class_code = %s, description = %s WHERE id = %s", 
-                               (name, teacher_id, code, desc, id))
+                modifier_name = data.get('modified_by', 'Admin')
+                cursor.execute("UPDATE classes SET name = %s, teacher_id = %s, class_code = %s, description = %s, modified_by = %s WHERE id = %s", 
+                               (name, teacher_id, code, desc, modifier_name, id))
                 conn.commit()
                 conn.close()
                 return jsonify({"message": "Class updated successfully"}), 200
@@ -793,7 +841,7 @@ def handle_library():
     cursor = conn.cursor(dictionary=True)
     
     if request.method == 'GET':
-        cursor.execute("SELECT * FROM library_resources ORDER BY created_at DESC")
+        cursor.execute("SELECT *, DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%S') as created_at FROM library_resources ORDER BY created_on DESC")
         resources = cursor.fetchall()
         conn.close()
         return jsonify(resources)
@@ -808,8 +856,9 @@ def handle_library():
         user_id = data.get('uploaded_by')
         
         try:
-            cursor.execute("INSERT INTO library_resources (title, resource_type, file_path, file_size, category, uploaded_by) VALUES (%s, %s, %s, %s, %s, %s)", 
-                           (title, res_type, path, size, cat, user_id))
+            creator_name = data.get('created_by', 'User')
+            cursor.execute("INSERT INTO library_resources (title, resource_type, file_path, file_size, category, uploaded_by, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+                           (title, res_type, path, size, cat, user_id, creator_name))
             conn.commit()
             conn.close()
             return jsonify({"message": "Resource added"}), 201
@@ -919,7 +968,7 @@ def handle_calendar():
     cursor = conn.cursor(dictionary=True)
     
     if request.method == 'GET':
-        cursor.execute("SELECT id, title, DATE_FORMAT(event_date, '%%Y-%%m-%%d') as date, event_type as type, color, description FROM calendar_events")
+        cursor.execute("SELECT id, title, DATE_FORMAT(event_date, '%Y-%%m-%%d') as date, event_type as type, color, description, DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%S') as created_at FROM calendar_events")
         events = cursor.fetchall()
         conn.close()
         return jsonify(events)
@@ -933,8 +982,9 @@ def handle_calendar():
         uid = data.get('created_by')
         
         try:
+            creator_name = data.get('created_by', 'User')
             cursor.execute("INSERT INTO calendar_events (title, event_date, event_type, color, created_by) VALUES (%s, %s, %s, %s, %s)", 
-                           (title, date, etype, color, uid))
+                           (title, date, etype, color, creator_name))
             conn.commit()
             conn.close()
             return jsonify({"message": "Event added"}), 201
@@ -971,9 +1021,14 @@ def create_messages_table():
                 body TEXT,
                 status VARCHAR(20) DEFAULT 'sent', -- 'sent', 'failed', 'queued'
                 is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INT,
+                modified_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                modified_by INT,
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL
+                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (modified_by) REFERENCES users(id) ON DELETE SET NULL
             )
             """
             cursor.execute(query)

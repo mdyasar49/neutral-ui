@@ -36,11 +36,10 @@ import {
   FilterList as FilterIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { Helmet } from 'react-helmet-async';
-
 import { useNotification } from '../../context/NotificationContext';
 import axios from 'axios';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import Page from '../../components/Page';
 
 export default function Library() {
   const [resources, setResources] = useState([]);
@@ -108,11 +107,14 @@ export default function Library() {
       return;
     }
     try {
+      const personaName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Admin';
+      
       const payload = {
         ...newFile,
         file_path: 'uploads/' + newFile.title.toLowerCase().replace(/ /g, '_'),
         file_size: '2.0 MB', // Mock size
-        uploaded_by: user.id || 1
+        uploaded_by: user.id || 1,
+        created_by: personaName
       };
       await axios.post('http://localhost:5000/api/library', payload);
       showNotification('Resource uploaded successfully', 'success');
@@ -131,19 +133,13 @@ export default function Library() {
   });
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10 }}>
-      <Helmet>
-        <title> Library | Neutral UI </title>
-      </Helmet>
-
-      <Box sx={{ mb: 5 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Resource Library
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Access study materials, question papers, and shared academic assets.
-        </Typography>
-      </Box>
+    <Page 
+      title="Resource Library" 
+      subtitle="Access study materials, question papers, and shared academic assets."
+    >
+       <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
+          <Button variant="contained" color="warning" onClick={() => setOpenUpload(true)}>Upload New File</Button>
+       </Box>
 
       <Grid container spacing={3}>
         {/* Search & Filters */}
@@ -299,6 +295,6 @@ export default function Library() {
         color="error"
         confirmText="Remove File"
       />
-    </Container>
+    </Page>
   );
 }

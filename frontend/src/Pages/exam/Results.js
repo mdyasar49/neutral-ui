@@ -184,6 +184,7 @@ export default function Results() {
         <Table>
           <TableHead sx={{ bgcolor: 'background.neutral' }}>
             <TableRow>
+              <TableCell fontWeight="bold">S.No</TableCell>
               <TableCell fontWeight="bold">Exam Title</TableCell>
               <TableCell>Student</TableCell>
               <TableCell>Score</TableCell>
@@ -195,8 +196,9 @@ export default function Results() {
           <TableBody>
             {results
               .filter(r => r.studentName.toLowerCase().includes(searchTerm.toLowerCase()) || r.examTitle.toLowerCase().includes(searchTerm.toLowerCase()))
-              .map((row) => (
+              .map((row, index) => (
               <TableRow key={row.id} hover>
+                <TableCell>{index + 1}</TableCell>
                 <TableCell>
                   <Typography variant="subtitle2">{row.examTitle}</Typography>
                 </TableCell>

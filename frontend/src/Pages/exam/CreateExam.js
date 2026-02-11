@@ -52,8 +52,12 @@ export default function CreateExam() {
     setIsSubmitting(true);
     try {
       // Prepare payload
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const creatorName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Admin';
+      
       const payload = {
         ...data,
+        created_by: creatorName,
         questions: data.questions.map(q => ({
           ...q,
           // Ensure options is an array

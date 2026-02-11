@@ -36,10 +36,9 @@ import {
   Menu,
 } from '@mui/material';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { Helmet } from 'react-helmet-async';
-
 import { useNotification } from '../../context/NotificationContext';
 import axios from 'axios';
+import Page from '../../components/Page';
 
 export default function ClassList() {
   const [classes, setClasses] = useState([]);
@@ -114,11 +113,19 @@ export default function ClassList() {
        return;
     }
     try {
+       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+       const personaName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Admin';
+       
+       const payload = {
+         ...formData,
+         [selectedClass ? 'modified_by' : 'created_by']: personaName
+       };
+
        if (selectedClass) {
-          await axios.put(`http://localhost:5000/api/classes/${selectedClass.id}`, formData);
+          await axios.put(`http://localhost:5000/api/classes/${selectedClass.id}`, payload);
           showNotification('Class updated successfully', 'success');
        } else {
-          await axios.post('http://localhost:5000/api/classes', formData);
+          await axios.post('http://localhost:5000/api/classes', payload);
           showNotification('Class created successfully', 'success');
        }
        setOpenForm(false);
@@ -140,21 +147,12 @@ export default function ClassList() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10 }}>
-      <Helmet>
-        <title> Classes | Neutral UI </title>
-      </Helmet>
-
-      <Box sx={{ mb: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Classes & Batches
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your student groups and academic departments.
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>New Class</Button>
+    <Page 
+      title="Classes & Batches" 
+      subtitle="Manage your student groups and academic departments."
+    >
+      <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>New Class</Button>
       </Box>
 
       <Grid container spacing={3}>
@@ -292,6 +290,6 @@ export default function ClassList() {
         onCancel={() => setConfirmDelete(false)}
         color="error"
       />
-    </Container>
+    </Page>
   );
 }

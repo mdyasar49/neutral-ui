@@ -87,8 +87,12 @@ export default function EditExam() {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const modifierName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Admin';
+
       const payload = {
         ...data,
+        modified_by: modifierName,
         questions: data.questions.map(q => ({
           ...q,
           options: q.options || []

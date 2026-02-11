@@ -28,6 +28,7 @@ import {
   School as SchoolIcon
 } from '@mui/icons-material';
 import { Helmet } from 'react-helmet-async';
+import Page from '../../components/Page';
 import axios from 'axios';
 import { useNotification } from '../../context/NotificationContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -116,30 +117,20 @@ export default function ExamList() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10 }}>
-       <Helmet>
-        <title> Exam Management | Neutral UI </title>
-      </Helmet>
-
-      {/* Header */}
-      <Box sx={{ mb: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Exams
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-            Create, manage and assign assessments.
-            </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/exam/create')}
-          sx={{ px: 4, py: 1.5, borderRadius: 2 }}
-        >
-          New Exam
-        </Button>
+    <Page 
+        title="Exams" 
+        subtitle="Create, manage and assign assessments."
+    >
+      <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/exam/create')}
+            sx={{ px: 4, py: 1.5, borderRadius: 2 }}
+          >
+            New Exam
+          </Button>
       </Box>
 
       {/* Filters */}
@@ -290,6 +281,6 @@ export default function ExamList() {
         confirmText="Delete Exam"
       />
 
-    </Container>
+    </Page>
   );
 }

@@ -24,6 +24,7 @@ import {
 import { Add as AddIcon, Email as EmailIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
+import Page from '../components/Page';
 import io from 'socket.io-client';
 import Loading from '../components/Loading';
 import { useNotification } from '../context/NotificationContext';
@@ -153,7 +154,8 @@ export default function Mail() {
               receiver_ids: internalIds, 
               receiver_emails: externalEmails,
               subject,
-              body
+              body,
+              created_by: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User'
           });
           setComposeOpen(false);
           setSubject('');
@@ -171,10 +173,16 @@ export default function Mail() {
   if (loading) return <Loading />;
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 10, height: '80vh' }}>
-       <Helmet>
-        <title> Mail | Neutral UI </title>
-      </Helmet>
+    <Page 
+        title="Mailbook" 
+        subtitle="Manage your messages and notifications."
+        sx={{ height: '80vh' }}
+    >
+      <Box sx={{ position: 'absolute', top: 32, right: 24 }}>
+          <Button startIcon={<AddIcon />} variant="contained" onClick={() => setComposeOpen(true)}>
+             Compose
+          </Button>
+      </Box>
 
       <Grid container spacing={2} sx={{ height: '100%' }}>
          {/* Inbox List */}
@@ -364,6 +372,6 @@ export default function Mail() {
          </DialogActions>
       </Dialog>
       
-    </Container>
+    </Page>
   );
 }

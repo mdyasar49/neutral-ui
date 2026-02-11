@@ -43,9 +43,14 @@ def create_messages_table():
                 body TEXT,
                 is_read BOOLEAN DEFAULT FALSE,
                 status ENUM('sent', 'failed') DEFAULT 'sent',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INT,
+                modified_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                modified_by INT,
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (modified_by) REFERENCES users(id) ON DELETE SET NULL
             )
             """)
             conn.commit()
@@ -57,9 +62,9 @@ def create_messages_table():
             
             if admin:
                 cursor.execute("""
-                    INSERT IGNORE INTO messages (sender_id, receiver_id, subject, body, is_read) 
-                    VALUES (%s, %s, 'Welcome to Mail', 'Congratulations on setting up the Mail System! You can now send internal messages to students.', FALSE)
-                """, (admin[0], admin[0]))
+                    INSERT IGNORE INTO messages (sender_id, receiver_id, subject, body, is_read, created_by) 
+                    VALUES (%s, %s, 'Welcome to Mail', 'Congratulations on setting up the Mail System! You can now send internal messages to students.', FALSE, %s)
+                """, (admin[0], admin[0], 'System'))
                 conn.commit()
                 print("Welcome message sent to Admin.")
                 

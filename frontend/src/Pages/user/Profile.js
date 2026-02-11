@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
   Grid,
   Card,
-  CardContent,
   Typography,
   Avatar,
   TextField,
@@ -13,9 +12,10 @@ import {
   Stack
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { Save as SaveIcon, Lock as LockIcon } from '@mui/icons-material';
+import { Save as SaveIcon } from '@mui/icons-material';
 import { Helmet } from 'react-helmet-async';
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
 import { useNotification } from '../../context/NotificationContext';
 
 export default function Profile() {
@@ -29,11 +29,23 @@ export default function Profile() {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-        setIsSubmitting(false);
+    try {
+        const payload = {
+            ...data,
+            modified_by: `${user.firstName} ${user.lastName}`
+        };
+        await axios.put(`http://localhost:5000/api/users/${user.id}`, payload);
+        
+        // Update local storage
+        const updatedUser = { ...user, ...data };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
         showNotification("Profile updated successfully!", "success");
-    }, 1000);
+    } catch (error) {
+        showNotification("Failed to update profile", "error");
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
